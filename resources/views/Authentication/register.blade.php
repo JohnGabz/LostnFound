@@ -25,37 +25,77 @@
           <p class="text-gray-500">Please fill your information below</p>
         </div>
 
+        <!-- Display validation errors if any -->
+        @if ($errors->any())
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <ul>
+            @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+        @endif
+
         <!-- Form Starts -->
-        <form action="/register" method="POST" class="space-y-4">
+        <form action="{{ route('register') }}" method="POST" class="space-y-4">
           @csrf
 
           <!-- Name -->
           <div>
-            <input type="text" name="name" placeholder="Name" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-            <div class="absolute left-3 top-3.5 text-gray-400">
-              <!-- User Icon -->
+            <label class="block text-gray-700 text-sm mb-1">Name</label>
+            <div class="relative">
+              <input type="text" name="name" placeholder="Name" value="{{ old('name') }}" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div class="absolute left-3 top-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 31 24" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#98A2B3" d="M21.8316 7.4C21.8316 10.38 18.96 12.8 15.42 12.8C11.88 12.8 9 10.38 9 7.4C9 4.42 11.88 2 15.42 2C18.96 2 21.8316 4.42 21.8316 7.4Z" />
+                </svg>
+              </div>
             </div>
           </div>
 
           <!-- Email -->
           <div>
-            <input type="email" name="email" placeholder="E-mail" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <label class="block text-gray-700 text-sm mb-1">Email</label>
+            <div class="relative">
+              <input type="email" name="email" placeholder="E-mail" value="{{ old('email') }}" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div class="absolute left-3 top-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 25 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#98A2B3" d="M4.27 2.5C2.59 2.5 1.22 3.62 1.22 5V15C1.22 16.38 2.59 17.5 4.27 17.5H20.56C22.24 17.5 23.61 16.38 23.61 15V5C23.61 3.62 22.24 2.5 20.56 2.5H4.27ZM6.96 6.03C6.53 5.73 5.89 5.78 5.53 6.13C5.17 6.49 5.23 7.01 5.66 7.31L10.46 10.58C11.59 11.36 13.24 11.36 14.37 10.58L19.17 7.31C19.6 7.01 19.66 6.49 19.3 6.13C18.94 5.78 18.3 5.73 17.87 6.03L13.07 9.3C12.69 9.56 12.14 9.56 11.76 9.3L6.96 6.03Z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           <!-- Password -->
           <div>
-            <input type="password" name="password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <label class="block text-gray-700 text-sm mb-1">Password</label>
+            <div class="relative">
+              <input type="password" name="password" placeholder="Password" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div class="absolute left-3 top-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 25 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#98A2B3" d="M4.27 2.5C2.59 2.5 1.22 3.62 1.22 5V15C1.22 16.38 2.59 17.5 4.27 17.5H20.56C22.24 17.5 23.61 16.38 23.61 15V5C23.61 3.62 22.24 2.5 20.56 2.5H4.27ZM6.96 6.03C6.53 5.73 5.89 5.78 5.53 6.13C5.17 6.49 5.23 7.01 5.66 7.31L10.46 10.58C11.59 11.36 13.24 11.36 14.37 10.58L19.17 7.31C19.6 7.01 19.66 6.49 19.3 6.13C18.94 5.78 18.3 5.73 17.87 6.03L13.07 9.3C12.69 9.56 12.14 9.56 11.76 9.3L6.96 6.03Z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           <!-- Confirm Password -->
           <div>
-            <input type="password" name="password_confirmation" placeholder="Confirm Password" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <label class="block text-gray-700 text-sm mb-1">Confirm Password</label>
+            <div class="relative">
+              <input type="password" name="password_confirmation" placeholder="Confirm Password" required class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <div class="absolute left-3 top-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 25 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fill="#98A2B3" d="M4.27 2.5C2.59 2.5 1.22 3.62 1.22 5V15C1.22 16.38 2.59 17.5 4.27 17.5H20.56C22.24 17.5 23.61 16.38 23.61 15V5C23.61 3.62 22.24 2.5 20.56 2.5H4.27ZM6.96 6.03C6.53 5.73 5.89 5.78 5.53 6.13C5.17 6.49 5.23 7.01 5.66 7.31L10.46 10.58C11.59 11.36 13.24 11.36 14.37 10.58L19.17 7.31C19.6 7.01 19.66 6.49 19.3 6.13C18.94 5.78 18.3 5.73 17.87 6.03L13.07 9.3C12.69 9.56 12.14 9.56 11.76 9.3L6.96 6.03Z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
-          <!-- Next Button -->
+          <!-- Sign Up Button -->
           <div>
-            <button class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex justify-center items-center">
-              Next
+            <button type="submit" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex justify-center items-center">
+              Sign Up
               <svg class="w-5 h-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
               </svg>
@@ -66,7 +106,7 @@
         <!-- Already have account -->
         <div class="text-sm text-center text-gray-500">
           Already have an account?
-          <a href="/login" class="text-indigo-600 hover:underline ml-1">Login to your account</a>
+          <a href="{{ route('login') }}" class="text-indigo-600 hover:underline ml-1">Login to your account</a>
         </div>
       </div>
     </div>
