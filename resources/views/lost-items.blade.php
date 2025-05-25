@@ -58,7 +58,7 @@
 
                         <!-- Footer with View Button -->
                         <div class="card-footer text-center bg-white border-top-0">
-                            <a href="{{ route('items.show', $item->id) }}" class="btn btn-outline-primary btn-sm btn-block">View Details</a>
+                            <a href="{{ route('items.show', $item) }}" class="btn btn-outline-primary btn-sm btn-block">View Details</a>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
             <div class="col-md-12">
                 <div class="alert alert-info text-center">
                     <h4>No found items available</h4>
-                    <p>Be the first to report a found item!</p>
+                    <p>Be the first to report a lost item!</p>
                 </div>
             </div>
         @endif

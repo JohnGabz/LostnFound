@@ -58,7 +58,7 @@
 
                         <!-- Footer with View Button -->
                         <div class="card-footer text-center bg-white border-top-0">
-                            <a href="{{ route('items.show', $item->id) }}" class="btn btn-outline-primary btn-sm btn-block">View Details</a>
+                            <a href="{{ route('items.show', $item) }}" class="btn btn-outline-primary btn-sm btn-block">View Details</a>
                         </div>
                     </div>
                 </div>

@@ -49,10 +49,10 @@
                         
                         <div class="form-group">
                             <label for="date">Date {{ $type == 'lost' ? 'Lost' : 'Found' }} <span class="text-danger">*</span></label>
-                            <input type="date" name="date" id="date" class="form-control @error('date') is-invalid @enderror" value="{{ old('date') ?? date('Y-m-d') }}" required>
-                            @error('date')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
+                            <input type="date" name="date_lost_found" id="date" class="form-control @error('date_lost_found') is-invalid @enderror" value="{{ old('date_lost_found') ?? date('Y-m-d') }}" required>
+                                @error('date_lost_found')
+                                    <span class="invalid-feedback">{{ $message }}</span>
+                                @enderror
                         </div>
                         
                         <div class="form-group">

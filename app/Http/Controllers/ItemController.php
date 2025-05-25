@@ -2,175 +2,157 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Item;
+use App\Models\Claim;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ItemController extends Controller
 {
-    public function lostIndex()
+    use AuthorizesRequests;
+
+    // Show lost items paginated
+    public function lostIndex(Request $request)
     {
-        // Sample data for testing
-        $lostItems = collect([
-            (object) [
-                'id' => 1,
-                'title' => 'iPhone 13 Pro',
-                'location' => 'Library, 2nd Floor',
-                'date_lost' => now()->subDays(2),
-                'description' => 'Black iPhone with red case and cracked screen',
-                'category' => 'Electronics',
-                'image_path' => null,
-                'created_at' => now()->subDays(2),
-                'status' => 'lost'
-            ],
-            (object) [
-                'id' => 2,
-                'title' => 'MacBook Charger',
-                'location' => 'Computer Lab',
-                'date_lost' => now()->subDays(5),
-                'description' => 'Apple MacBook charger with a blue sticker',
-                'category' => 'Electronics',
-                'image_path' => null,
-                'created_at' => now()->subDays(5),
-                'status' => 'lost'
-            ],
-        ]);
-        
-        // Paginate manually for testing
-        $lostItems = new LengthAwarePaginator(
-            $lostItems, 
-            count($lostItems), 
-            10, 
-            1, 
-            ['path' => request()->url()]
-        );
-        
+        $query = Item::where('type', 'lost');
+
+        if ($search = $request->input('search')) {
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        $lostItems = $query->orderBy('created_at', 'desc')->paginate(10);
+
         return view('lost-items', compact('lostItems'));
     }
 
-    public function foundIndex()
+    // Show found items paginated
+    public function foundIndex(Request $request)
     {
-        // Sample data for testing
-        $foundItems = collect([
-            (object) [
-                'id' => 3,
-                'title' => 'Blue Backpack',
-                'location' => 'Cafeteria',
-                'date_lost' => null,
-                'description' => 'Nike blue backpack with math textbooks inside',
-                'category' => 'Bags',
-                'image_path' => null,
-                'created_at' => now()->subDays(1),
-                'status' => 'found'
-            ],
-            (object) [
-                'id' => 4,
-                'title' => 'Student ID Card',
-                'location' => 'Main Hall',
-                'date_lost' => null,
-                'description' => 'Student ID card for John Smith',
-                'category' => 'ID/Documents',
-                'image_path' => null,
-                'created_at' => now()->subDays(3),
-                'status' => 'found'
-            ],
-        ]);
-        
-        // Paginate manually for testing
-        $foundItems = new LengthAwarePaginator(
-            $foundItems, 
-            count($foundItems), 
-            10, 
-            1, 
-            ['path' => request()->url()]
-        );
-        
+        $query = Item::where('type', 'found');
+
+        if ($search = $request->input('search')) {
+            $query->where('title', 'like', "%{$search}%");
+        }
+
+        $foundItems = $query->orderBy('created_at', 'desc')->paginate(10);
+
         return view('found-items', compact('foundItems'));
     }
 
+    // Show form for reporting a lost or found item
     public function report($type)
     {
         if (!in_array($type, ['lost', 'found'])) {
             return redirect()->back()->with('error', 'Invalid item type');
         }
-        
+
         return view('report-form', compact('type'));
     }
 
+    // Show details of a single item with claims
     public function show($id)
     {
-        // Sample item for testing
-        $item = (object) [
-            'id' => $id,
-            'title' => 'Student ID Card',
-            'type' => request('type', 'found'),
-            'location' => 'Main Hall',
-            'date_lost' => now()->subDays(3),
-            'description' => 'Student ID card for John Smith. Found near the cafeteria entrance.',
-            'category' => 'ID/Documents',
-            'image_path' => null,
-            'created_at' => now()->subDays(3),
-            'status' => 'found',
-            'user' => (object) [
-                'id' => 1,
-                'name' => 'Jane Doe',
-                'email' => 'jane@example.com'
-            ],
-            'claims' => collect([
-                (object) [
-                    'id' => 1,
-                    'status' => 'pending',
-                    'message' => 'This is my ID card. I lost it yesterday. My name is John Smith.',
-                    'created_at' => now()->subDay(),
-                    'updated_at' => now()->subDay(),
-                    'photo_path' => null,
-                    'claimer' => (object) [
-                        'id' => 2,
-                        'name' => 'John Smith'
-                    ]
-                ]
-            ])
-        ];
-        
+        // Eager load user and claims with claimer user info
+        $item = Item::with(['user', 'claims.claimer'])->findOrFail($id);
+
+        // Optionally, check if the logged-in user has claimed this item
         $userHasClaimed = false;
-        
+        if (auth()->check()) {
+            $userHasClaimed = $item->claims()->where('claimer_id', auth()->id())->exists();
+        }
+
         return view('item-details', compact('item', 'userHasClaimed'));
     }
-    
+
+    // Store a newly reported item (lost or found)
     public function store(Request $request)
     {
-        // Validate and store demo
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'date_lost_found' => 'required|date',
+            'description' => 'nullable|string',
+            'category' => 'required|string|max:100',
+            'image' => 'nullable|image|max:2048',
+            'type' => 'required|in:lost,found',
+        ]);
+
+        $item = new Item();
+        $item->title = $validated['title'];
+        $item->location = $validated['location'];
+        $item->date_lost_found = $validated['date_lost_found'];
+        $item->description = $validated['description'] ?? null;
+        $item->category = $validated['category'];
+        $item->type = $validated['type'];
+        $item->status = 'pending';
+        $item->user_id = auth()->id();
+
+        // Handle image upload if exists
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('items', 'public');
+            $item->image_path = $path;
+        }
+
+        $item->save();
+
         session()->flash('success', 'Item reported successfully!');
-        return redirect()->route($request->type == 'lost' ? 'lost.index' : 'found.index');
+        return redirect()->route($item->type . '.index');
     }
-    
-    public function myItems()
-    {
-        // Dummy method for testing
-        return view('found-items', ['foundItems' => new LengthAwarePaginator([], 0, 10, 1)]);
-    }
-    
+
+    // Other CRUD methods, assuming you implement them
     public function edit($id)
     {
-        // Dummy method for testing
-        return redirect()->back();
+        $item = Item::findOrFail($id);
+
+        // Authorization check example (optional)
+        $this->authorize('update', $item);
+
+        return view('edit-item', compact('item'));
     }
-    
+
     public function update(Request $request, $id)
     {
-        // Dummy method for testing
-        return redirect()->back();
+        $item = Item::findOrFail($id);
+        $this->authorize('update', $item);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'category' => 'required|string|max:100',
+            'image' => 'nullable|image|max:2048',
+        ]);
+
+        $item->fill($validated);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('items', 'public');
+            $item->image_path = $path;
+        }
+
+        $item->save();
+
+        session()->flash('success', 'Item updated successfully!');
+        return redirect()->route($item->status . '.index');
     }
-    
+
     public function destroy($id)
     {
-        // Dummy method for testing
+        $item = Item::findOrFail($id);
+        $this->authorize('delete', $item);
+
+        $item->delete();
+
         return redirect()->back()->with('success', 'Item deleted successfully!');
     }
-    
-    public function match($id)
+
+    // Optional: View my reported items (both lost and found)
+    public function myItems()
     {
-        // Dummy method for testing
-        return redirect()->back();
+        $userId = auth()->id();
+
+        $items = Item::where('user_id', $userId)->orderBy('created_at', 'desc')->paginate(10);
+
+        return view('my-items', compact('items'));
     }
 }
