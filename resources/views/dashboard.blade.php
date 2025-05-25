@@ -1,61 +1,24 @@
 @extends('layouts.app')
 
+@section('title', 'Dashboard')
+
 @section('content')
-<div class="container">
-    <div class="row">
-        <div class="col-md-12 mb-4">
-            <div class="card">
-                <div class="card-header">Dashboard</div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="card mb-4">
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">Total Posts</h5>
-                                    <p class="card-text display-4">{{ $totalPosts }}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            <div class="card mb-4">
-                                <div class="card-body">
-                                    <div id="itemsChart" style="height: 300px;"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mt-4">
-                        <div class="col-md-4">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">Lost</h5>
-                                    <p class="card-text">{{ $lostCount }} items</p>
-                                    <p class="card-text">{{ $lostPercentage }}%</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-success text-white">
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">Found</h5>
-                                    <p class="card-text">{{ $foundCount }} items</p>
-                                    <p class="card-text">{{ $foundPercentage }}%</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="card bg-info text-white">
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">Claimed</h5>
-                                    <p class="card-text">{{ $claimedCount }} items</p>
-                                    <p class="card-text">{{ $claimedPercentage }}%</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="chart-box mt-5">
+    <h5 class="text-dark mb-4">Total Posts: {{ $totalPosts }}</h5>
+    <div class="d-flex justify-content-center">
+        <div style="position: relative; height: 250px; width: 250px;">
+            <canvas id="itemsChart"></canvas>
+        </div>
+    </div>
+    <div class="legend mt-4">
+        <div class="legend-item text-muted">
+            <span class="legend-circle bg-lost"></span> Lost ({{ $lostPercentage }}%)
+        </div>
+        <div class="legend-item text-muted">
+            <span class="legend-circle bg-found"></span> Found ({{ $foundPercentage }}%)
+        </div>
+        <div class="legend-item text-muted">
+            <span class="legend-circle bg-claims"></span> Claimed ({{ $claimedPercentage }}%)
         </div>
     </div>
 </div>
@@ -63,30 +26,35 @@
 
 @section('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Sample data for the chart
-        const data = {
-            labels: ['Lost', 'Found', 'Claimed'],
-            datasets: [{
-                data: [{{ $lostCount }}, {{ $foundCount }}, {{ $claimedCount }}],
-                backgroundColor: ['#007bff', '#28a745', '#17a2b8']
-            }]
-        };
-
-        // Create doughnut chart
+    document.addEventListener('DOMContentLoaded', function () {
         const ctx = document.getElementById('itemsChart').getContext('2d');
         new Chart(ctx, {
             type: 'doughnut',
-            data: data,
+            data: {
+                labels: ['Lost', 'Found', 'Claimed'],
+                datasets: [{
+                    data: [@json($lostCount), @json($foundCount), @json($claimedCount)],
+                    backgroundColor: ['#6366F1', '#60A5FA', '#A5B4FC'],
+                    borderWidth: 0
+                }]
+            },
             options: {
+                cutoutPercentage: 70,
                 responsive: true,
                 maintainAspectRatio: false,
                 legend: {
-                    position: 'bottom'
+                    display: false
                 },
-                title: {
-                    display: true,
-                    text: 'Items Distribution'
+                tooltips: {
+                    callbacks: {
+                        label: function (tooltipItem, data) {
+                            const label = data.labels[tooltipItem.index];
+                            const value = data.datasets[0].data[tooltipItem.index];
+                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `${label}: ${value} items (${percentage}%)`;
+                        }
+                    }
                 }
             }
         });

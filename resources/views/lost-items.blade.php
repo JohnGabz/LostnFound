@@ -1,66 +1,64 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h2 class="mb-0">Lost Items</h2>
-        </div>
-        <div class="col-md-4 text-right">
-            <a href="{{ route('items.report', ['type' => 'lost']) }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Report Lost Item
-            </a>
-        </div>
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="font-weight-bold">Lost Items</h2>
+        <a href="{{ route('items.report', ['type' => 'found']) }}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus-circle mr-1"></i> Report Lost Item
+        </a>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-body">
-                    <form action="{{ route('lost.index') }}" method="GET" class="form-inline">
-                        <div class="input-group w-100">
-                            <input type="text" name="search" class="form-control" placeholder="Search Item..." value="{{ request('search') }}">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="submit">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+    <div class="mb-4">
+        <form action="{{ route('lost.index') }}" method="GET" class="form-inline">
+            <div class="input-group w-100">
+                <span class="input-group-text bg-white border-right-0">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" name="search" class="form-control border-left-0" placeholder="Search Item..." value="{{ request('search') }}">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="submit">Search</button>
                 </div>
             </div>
-        </div>
+        </form>
     </div>
 
     <div class="row">
         @if($lostItems->count() > 0)
             @foreach($lostItems as $item)
                 <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span>{{ $item->title }}</span>
-                                <small class="text-muted">{{ $item->created_at->format('M d, Y') }}</small>
+                    <div class="card h-100 shadow-sm">
+                        <!-- Card Header with Avatar + Date -->
+                        <div class="card-header bg-light d-flex align-items-center">
+                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2" style="width: 35px; height: 35px;">
+                                {{ strtoupper(substr($item->reporter_name ?? 'A', 0, 1)) }}
+                            </div>
+                            <div>
+                                <div class="font-weight-bold small">{{ $item->reporter_name ?? 'Anonymous' }}</div>
+                                <div class="text-muted small">{{ $item->created_at->format('M d, Y') }}</div>
                             </div>
                         </div>
-                        
+
+                        <!-- Card Image or Placeholder -->
                         @if($item->image_path)
                             <img src="{{ asset('storage/' . $item->image_path) }}" class="card-img-top" alt="{{ $item->title }}" style="height: 180px; object-fit: cover;">
                         @else
                             <div class="card-img-top bg-light d-flex justify-content-center align-items-center" style="height: 180px;">
-                                <i class="fas fa-search fa-3x text-secondary"></i>
+                                <i class="fas fa-box fa-3x text-muted"></i>
                             </div>
                         @endif
-                        
+
+                        <!-- Card Body -->
                         <div class="card-body">
-                            <p class="card-text">
-                                <strong>Location:</strong> {{ $item->location }}<br>
-                                <strong>Date Lost:</strong> {{ $item->date_lost->format('M d, Y') }}
-                            </p>
-                            <p class="card-text text-truncate">{{ $item->description }}</p>
+                            <h5 class="card-title mb-2">{{ $item->title }}</h5>
+                            <p class="mb-1"><strong>Location:</strong> {{ $item->location }}</p>
+                            <p class="mb-1"><strong>Category:</strong> {{ $item->category }}</p>
+                            <p class="text-muted small">{{ Str::limit($item->description, 100) }}</p>
                         </div>
-                        <div class="card-footer">
-                            <a href="{{ route('items.show', $item->id) }}" class="btn btn-info btn-block">View Details</a>
+
+                        <!-- Footer with View Button -->
+                        <div class="card-footer text-center bg-white border-top-0">
+                            <a href="{{ route('items.show', $item->id) }}" class="btn btn-outline-primary btn-sm btn-block">View Details</a>
                         </div>
                     </div>
                 </div>
@@ -68,8 +66,8 @@
         @else
             <div class="col-md-12">
                 <div class="alert alert-info text-center">
-                    <h4>No lost items reported</h4>
-                    <p>Lucky you! Or be the first to report a missing item.</p>
+                    <h4>No found items available</h4>
+                    <p>Be the first to report a found item!</p>
                 </div>
             </div>
         @endif
