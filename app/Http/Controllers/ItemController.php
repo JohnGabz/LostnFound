@@ -148,15 +148,22 @@ class ItemController extends Controller
         return redirect()->route($type . '.index')->with('success', 'Item deleted successfully!');
     }
 
-    // Optional: View my reported items (both lost and found)
+    // View my reported items (both lost and found)
     public function myItems()
     {
-        $userId = auth()->id();
+        $user = auth()->user();
 
-        $items = Item::where('user_id', $userId)->orderBy('created_at', 'desc')->paginate(10);
+        // Get all items reported by the user
+        $items = Item::where('user_id', $user->user_id)->get();
 
-        return view('my-items', compact('items'));
+        // Filter by type and status from the $items collection
+        $lostItems = $items->where('type', 'lost');
+        $foundItems = $items->where('type', 'found');
+        $claimedItems = $items->where('status', 'claimed');
+
+        return view('my-items', compact('lostItems', 'foundItems', 'claimedItems'));
     }
+
 
     public function markAsClaimed($itemId)
     {

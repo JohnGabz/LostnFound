@@ -19,7 +19,7 @@
                         <div class="row">
                             <div class="col-md-5">
                                 @if($item->image_path)
-                                    <img src="{{ asset('storage/' . $item->image_path) }}" alt="{{ $item->title }}"
+                                    <img src="{{ asset('storage/items/' . $item->image_path) }}" alt="{{ $item->title }}"
                                         class="img-fluid rounded">
                                 @else
                                     <div class="bg-light d-flex justify-content-center align-items-center rounded"
