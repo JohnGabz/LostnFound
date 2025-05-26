@@ -3,128 +3,299 @@
 @section('title', 'Two-Factor Authentication')
 
 @section('content')
-<div class="max-w-4xl mx-auto py-8">
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Two-Factor Authentication</h3>
-            <p class="mt-1 text-sm text-gray-600">
-                Add additional security to your account using two-factor authentication.
-            </p>
-        </div>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Header Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center mr-3" 
+                             style="width: 48px; height: 48px;">
+                            <i class="fas fa-envelope-open-text fa-lg"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1 font-weight-bold text-dark">Email Two-Factor Authentication</h4>
+                            <p class="mb-0 text-muted">Secure your account with email verification codes</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <div class="px-6 py-4">
+            <!-- Status Messages -->
             @if (session('status'))
-                <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle mr-2"></i>
                     {{ session('status') }}
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
                 </div>
             @endif
 
             @if ($errors->any())
-                <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <ul>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <ul class="mb-0">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
+                    <button type="button" class="close" data-dismiss="alert">
+                        <span>&times;</span>
+                    </button>
                 </div>
             @endif
 
-            @if (auth()->user()->hasEnabledTwoFactorAuthentication())
-                <!-- 2FA is enabled -->
-                <div class="space-y-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <svg class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+            @if ($isEnabled)
+                <!-- 2FA is ENABLED -->
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <!-- Status Header -->
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-success text-white d-flex justify-content-center align-items-center mr-3" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 font-weight-bold text-success">Email 2FA is Active</h5>
+                                    <p class="mb-0 text-muted">Verification codes will be sent to <strong>{{ $user->email }}</strong></p>
+                                </div>
+                            </div>
+                            <span class="badge badge-success badge-pill px-3 py-2">
+                                <i class="fas fa-shield-alt mr-1"></i> ENABLED
+                            </span>
                         </div>
-                        <div class="ml-3">
-                            <h4 class="text-lg font-medium text-gray-900">Two-factor authentication is enabled</h4>
-                            <p class="text-sm text-gray-600">Your account is protected with two-factor authentication.</p>
-                        </div>
-                    </div>
 
-                    <!-- Recovery Codes -->
-                    @if ($recoveryCodes)
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                            <h5 class="text-sm font-medium text-yellow-800 mb-2">Recovery Codes</h5>
-                            <p class="text-sm text-yellow-700 mb-3">
-                                Store these recovery codes in a secure password manager. They can be used to recover access to your account if your two-factor authentication device is lost.
-                            </p>
-                            <div class="grid grid-cols-2 gap-2 font-mono text-sm">
-                                @foreach ($recoveryCodes as $code)
-                                    <div class="bg-white px-3 py-2 rounded border">{{ $code }}</div>
-                                @endforeach
+                        <!-- How it works -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0 font-weight-bold">
+                                    <i class="fas fa-info-circle mr-2"></i>How Email 2FA Works
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-sign-in-alt"></i>
+                                        </div>
+                                        <h6 class="font-weight-bold">1. Login</h6>
+                                        <small class="text-muted">Enter your email and password</small>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-warning text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <h6 class="font-weight-bold">2. Check Email</h6>
+                                        <small class="text-muted">We send a 6-digit code</small>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-success text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-key"></i>
+                                        </div>
+                                        <h6 class="font-weight-bold">3. Verify</h6>
+                                        <small class="text-muted">Enter the code to access</small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <form method="POST" action="{{ route('two-factor.recovery-codes') }}">
-                            @csrf
-                            <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 transition">
-                                Regenerate Recovery Codes
-                            </button>
-                        </form>
-                    @endif
-
-                    <!-- Disable 2FA -->
-                    <div class="border-t border-gray-200 pt-6">
-                        <h5 class="text-sm font-medium text-gray-900 mb-2">Disable Two-Factor Authentication</h5>
-                        <form method="POST" action="{{ route('two-factor.disable') }}" class="space-y-3">
-                            @csrf
-                            @method('DELETE')
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                                <input type="password" name="password" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <!-- Test OTP Feature (Development only) -->
+                        @if (app()->environment('local'))
+                        <div class="card border-info mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0 font-weight-bold">
+                                    <i class="fas fa-flask mr-2"></i>Test Email OTP (Development Only)
+                                </h6>
                             </div>
-                            <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-                                Disable Two-Factor Authentication
-                            </button>
-                        </form>
+                            <div class="card-body">
+                                <p class="mb-3">Send a test OTP to your email to verify the system is working.</p>
+                                <button type="button" class="btn btn-info" id="testOtpBtn">
+                                    <i class="fas fa-paper-plane mr-1"></i> Send Test OTP
+                                </button>
+                                <div id="testOtpResult" class="mt-3" style="display: none;"></div>
+                            </div>
+                        </div>
+                        @endif
+
+                        <!-- Disable 2FA Section -->
+                        <div class="card border-danger">
+                            <div class="card-header bg-light border-danger">
+                                <h6 class="mb-0 font-weight-bold text-danger">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>Disable Email Two-Factor Authentication
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-warning mr-1 text-warning"></i>
+                                    Disabling two-factor authentication will make your account less secure. You will no longer receive email verification codes when logging in.
+                                </p>
+                                
+                                <form method="POST" action="{{ route('two-factor.disable') }}" id="disable2faForm">
+                                    @csrf
+                                    @method('DELETE')
+                                    <div class="form-group">
+                                        <label for="password" class="font-weight-bold">Confirm Your Password</label>
+                                        <input type="password" name="password" id="password" required 
+                                               class="form-control" placeholder="Enter your current password">
+                                    </div>
+                                    <button type="submit" class="btn btn-danger" 
+                                            onclick="return confirm('Are you sure you want to disable email two-factor authentication? This will make your account less secure.')">
+                                        <i class="fas fa-shield-alt mr-1"></i> Disable Email 2FA
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             @else
-                <!-- 2FA is not enabled -->
-                <div class="space-y-6">
-                    <div>
-                        <h4 class="text-lg font-medium text-gray-900 mb-2">Enable Two-Factor Authentication</h4>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Two-factor authentication adds an additional layer of security to your account by requiring more than just a password to log in.
-                        </p>
-                    </div>
-
-                    <!-- QR Code -->
-                    <div class="bg-gray-50 rounded-lg p-6">
-                        <h5 class="text-sm font-medium text-gray-900 mb-3">1. Scan QR Code</h5>
-                        <p class="text-sm text-gray-600 mb-4">
-                            Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.):
-                        </p>
-                        <div class="flex justify-center mb-4">
-                            <img src="{{ $qrCodeUrl }}" alt="2FA QR Code" class="border border-gray-300 rounded">
-                        </div>
-                        <p class="text-xs text-gray-500 text-center">
-                            Or manually enter this secret: <code class="bg-gray-100 px-2 py-1 rounded">{{ $secret }}</code>
-                        </p>
-                    </div>
-
-                    <!-- Verify Code -->
-                    <div>
-                        <h5 class="text-sm font-medium text-gray-900 mb-3">2. Verify Setup</h5>
-                        <form method="POST" action="{{ route('two-factor.enable') }}" class="space-y-3">
-                            @csrf
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Enter the 6-digit code from your authenticator app</label>
-                                <input type="text" name="code" maxlength="6" required 
-                                       class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                       placeholder="123456">
+                <!-- 2FA is DISABLED - Setup Flow -->
+                <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                        <!-- Status Header -->
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-warning text-white d-flex justify-content-center align-items-center mr-3" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 font-weight-bold text-warning">Email 2FA is Disabled</h5>
+                                    <p class="mb-0 text-muted">Enable email verification for enhanced security</p>
+                                </div>
                             </div>
-                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
-                                Enable Two-Factor Authentication
-                            </button>
-                        </form>
+                            <span class="badge badge-warning badge-pill px-3 py-2">
+                                <i class="fas fa-shield-alt mr-1"></i> DISABLED
+                            </span>
+                        </div>
+
+                        <!-- Benefits Section -->
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="font-weight-bold mb-2">
+                                <i class="fas fa-shield-check mr-2"></i>Why Enable Email Two-Factor Authentication?
+                            </h6>
+                            <ul class="mb-0">
+                                <li><strong>Enhanced Security:</strong> Protects your account even if your password is compromised</li>
+                                <li><strong>Email Convenience:</strong> No need to install additional apps - codes sent directly to your email</li>
+                                <li><strong>Time-Limited Codes:</strong> Verification codes expire in 5 minutes for maximum security</li>
+                                <li><strong>Easy Setup:</strong> Enable with just one click - no complex configuration needed</li>
+                            </ul>
+                        </div>
+
+                        <!-- Current Email -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="font-weight-bold mb-2">
+                                    <i class="fas fa-envelope mr-2"></i>Verification Email Address
+                                </h6>
+                                <p class="mb-0">
+                                    OTP codes will be sent to: <strong class="text-primary">{{ $user->email }}</strong>
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Make sure you have access to this email address before enabling 2FA.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- How it will work -->
+                        <div class="card border-primary mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0 font-weight-bold">
+                                    <i class="fas fa-cogs mr-2"></i>How Email 2FA Will Work
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <span class="font-weight-bold">1</span>
+                                        </div>
+                                        <h6 class="font-weight-bold">Login Attempt</h6>
+                                        <small class="text-muted">You enter your email and password</small>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-warning text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <span class="font-weight-bold">2</span>
+                                        </div>
+                                        <h6 class="font-weight-bold">Email Sent</h6>
+                                        <small class="text-muted">6-digit code sent to your email</small>
+                                    </div>
+                                    <div class="col-md-4 text-center mb-3">
+                                        <div class="rounded-circle bg-success text-white d-flex justify-content-center align-items-center mx-auto mb-2" 
+                                             style="width: 50px; height: 50px;">
+                                            <span class="font-weight-bold">3</span>
+                                        </div>
+                                        <h6 class="font-weight-bold">Access Granted</h6>
+                                        <small class="text-muted">Enter code and login successfully</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Enable Button -->
+                        <div class="text-center">
+                            <form method="POST" action="{{ route('two-factor.enable') }}">
+                                @csrf
+                                <button type="submit" class="btn btn-success btn-lg px-5">
+                                    <i class="fas fa-shield-alt mr-2"></i>Enable Email Two-Factor Authentication
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             @endif
         </div>
     </div>
 </div>
+
+@if (app()->environment('local') && $isEnabled)
+<script>
+document.getElementById('testOtpBtn').addEventListener('click', function() {
+    const btn = this;
+    const result = document.getElementById('testOtpResult');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending...';
+    
+    fetch('{{ route("two-factor.test-otp") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.otp_code) {
+            result.innerHTML = `
+                <div class="alert alert-success">
+                    <strong>Test OTP sent successfully!</strong><br>
+                    <strong>Code:</strong> <code>${data.otp_code}</code><br>
+                    <strong>Expires:</strong> ${new Date(data.expires_at).toLocaleString()}
+                </div>
+            `;
+        } else {
+            result.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+        }
+        result.style.display = 'block';
+    })
+    .catch(error => {
+        result.innerHTML = `<div class="alert alert-danger">Error sending test OTP. Please try again.</div>`;
+        result.style.display = 'block';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Send Test OTP';
+    });
+});
+</script>
+@endif
 @endsection

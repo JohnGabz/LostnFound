@@ -96,6 +96,23 @@
         .bg-claims {
             background-color: #A5B4FC;
         }
+
+        .security-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            margin-left: 0.5rem;
+        }
+
+        .security-enabled {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .security-disabled {
+            background-color: #f59e0b;
+            color: white;
+        }
     </style>
 
     @yield('styles')
@@ -115,6 +132,21 @@
                     <div class="mt-2 text-uppercase text-primary font-weight-bold small">
                         {{ strtoupper(Auth::user()->role ?? 'USER') }}
                     </div>
+                    
+                    <!-- 2FA Status Badge -->
+                    @if(Auth::user()->hasEnabledTwoFactorAuthentication())
+                        <div class="mt-1">
+                            <span class="security-badge security-enabled">
+                                <i class="fas fa-shield-alt"></i> 2FA ON
+                            </span>
+                        </div>
+                    @else
+                        <div class="mt-1">
+                            <span class="security-badge security-disabled">
+                                <i class="fas fa-shield-alt"></i> 2FA OFF
+                            </span>
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Menu Label -->
@@ -160,6 +192,7 @@
                                     'items.index' => 'Items',
                                     'items.my' => 'My Items',
                                     'profile.edit' => 'Edit Profile',
+                                    'two-factor.show' => 'Two-Factor Authentication',
                                     'login' => 'Login',
                                     'register' => 'Register',
                                     default => config('app.name', 'LostnFound'),
@@ -192,6 +225,13 @@
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=6366F1&color=fff&size=32"
                                             class="rounded-circle mr-2" alt="Avatar">
                                         <span class="font-weight-semibold text-dark">{{ Auth::user()->name }}</span>
+                                        
+                                        <!-- 2FA Status Indicator -->
+                                        @if(Auth::user()->hasEnabledTwoFactorAuthentication())
+                                            <i class="fas fa-shield-alt text-success ml-1" title="2FA Enabled"></i>
+                                        @else
+                                            <i class="fas fa-shield-alt text-warning ml-1" title="2FA Disabled"></i>
+                                        @endif
                                     </a>
 
                                     <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
@@ -201,6 +241,20 @@
                                         <a class="dropdown-item" href="{{ route('items.my') }}">
                                             <i class="fas fa-box mr-2"></i> My Items
                                         </a>
+                                        
+                                        <div class="dropdown-divider"></div>
+                                        
+                                        <!-- Two-Factor Authentication Link -->
+                                        <a class="dropdown-item" href="{{ route('two-factor.show') }}">
+                                            <i class="fas fa-shield-alt mr-2"></i> 
+                                            Two-Factor Authentication
+                                            @if(Auth::user()->hasEnabledTwoFactorAuthentication())
+                                                <span class="badge badge-success ml-1">ON</span>
+                                            @else
+                                                <span class="badge badge-warning ml-1">OFF</span>
+                                            @endif
+                                        </a>
+                                        
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item" href="{{ route('logout') }}"
                                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

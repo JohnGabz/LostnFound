@@ -6,11 +6,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-<<<<<<< HEAD
-use Illuminate\Support\Facades\Crypt;
-=======
-use Illuminate\Database\Eloquent\Casts\Attribute;
->>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -23,13 +19,16 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $primaryKey = 'user_id';
-
+    
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
         'two_factor_enabled',
+        'failed_login_attempts',
+        'locked_until',
+        'last_failed_login',
     ];
 
     /**
@@ -40,8 +39,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
     ];
 
     /**
@@ -55,72 +52,141 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
-            'two_factor_confirmed_at' => 'datetime',
+            'locked_until' => 'datetime',
+            'last_failed_login' => 'datetime',
         ];
     }
 
-<<<<<<< HEAD
     /**
-     * Get the user's two factor authentication secret.
+     * Get the user's OTP codes.
      */
-    public function getTwoFactorSecretAttribute($value)
+    public function otps(): HasMany
     {
-        return $value ? Crypt::decryptString($value) : null;
+        return $this->hasMany(UserOtp::class, 'user_id', 'user_id');
     }
 
     /**
-     * Set the user's two factor authentication secret.
+     * Check if two-factor authentication is enabled for this user.
      */
-    public function setTwoFactorSecretAttribute($value)
+    public function hasEnabledTwoFactorAuthentication(): bool
     {
-        $this->attributes['two_factor_secret'] = $value ? Crypt::encryptString($value) : null;
+        return $this->two_factor_enabled;
     }
 
     /**
-     * Get the user's two factor recovery codes.
+     * Enable two-factor authentication for this user.
      */
-    public function getTwoFactorRecoveryCodesAttribute($value)
+    public function enableTwoFactorAuthentication(): void
     {
-        return $value ? json_decode(Crypt::decryptString($value), true) : null;
+        $this->update(['two_factor_enabled' => true]);
     }
 
     /**
-     * Set the user's two factor recovery codes.
+     * Disable two-factor authentication for this user.
      */
-    public function setTwoFactorRecoveryCodesAttribute($value)
+    public function disableTwoFactorAuthentication(): void
     {
-        $this->attributes['two_factor_recovery_codes'] = $value ? Crypt::encryptString(json_encode($value)) : null;
+        $this->update(['two_factor_enabled' => false]);
+        
+        // Delete all unused OTPs
+        $this->otps()->where('is_used', false)->delete();
     }
 
     /**
-     * Determine if two-factor authentication is enabled.
+     * Generate and send OTP for login.
      */
-    public function hasEnabledTwoFactorAuthentication()
+    public function sendLoginOtp(): UserOtp
     {
-        return $this->two_factor_enabled && 
-               !is_null($this->two_factor_secret) && 
-               !is_null($this->two_factor_confirmed_at);
+        $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
+        
+        // Send email notification
+        $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
+        
+        return $otp;
     }
 
     /**
-     * Generate new recovery codes.
+     * Check if the account is currently locked.
      */
-    public function generateRecoveryCodes()
+    public function isLocked(): bool
     {
-        $codes = [];
-        for ($i = 0; $i < 8; $i++) {
-            $codes[] = strtoupper(bin2hex(random_bytes(5)));
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Get the time remaining until unlock (in minutes).
+     */
+    public function getLockoutTimeRemaining(): ?int
+    {
+        if (!$this->isLocked()) {
+            return null;
         }
-        return $codes;
+
+        return $this->locked_until->diffInMinutes(now());
     }
-}
-=======
-    public function isAdmin(): Attribute
+
+    /**
+     * Record a failed login attempt.
+     */
+    public function recordFailedLogin(string $reason = 'Invalid credentials'): void
     {
-        return Attribute::make(
-            get: fn() => $this->role === 'admin',
+        $this->increment('failed_login_attempts');
+        $this->update(['last_failed_login' => now()]);
+
+        // Lock account after 5 failed attempts
+        if ($this->failed_login_attempts >= 5) {
+            $this->lockAccount();
+        }
+
+        // Log the attempt
+        LoginAttempt::logAttempt(
+            $this->email,
+            request()->ip(),
+            request()->userAgent(),
+            false,
+            $reason
         );
     }
 
+    /**
+     * Record a successful login.
+     */
+    public function recordSuccessfulLogin(): void
+    {
+        $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_failed_login' => null,
+        ]);
+
+        // Log the successful attempt
+        LoginAttempt::logAttempt(
+            $this->email,
+            request()->ip(),
+            request()->userAgent(),
+            true
+        );
+    }
+
+    /**
+     * Lock the account for a specified duration.
+     */
+    public function lockAccount(int $minutes = 30): void
+    {
+        $this->update([
+            'locked_until' => now()->addMinutes($minutes),
+        ]);
+    }
+
+    /**
+     * Unlock the account manually.
+     */
+    public function unlockAccount(): void
+    {
+        $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_failed_login' => null,
+        ]);
+    }
 }
->>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0
