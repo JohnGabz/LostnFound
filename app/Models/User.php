@@ -6,12 +6,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-<<<<<<< HEAD
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-=======
 use Illuminate\Database\Eloquent\Relations\HasMany;
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -46,54 +43,36 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
-<<<<<<< HEAD
     // Decrypt two factor secret
-    public function getTwoFactorSecretAttribute($value)
-=======
     /**
      * Get the user's OTP codes.
      */
     public function otps(): HasMany
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         return $this->hasMany(UserOtp::class, 'user_id', 'user_id');
     }
 
-<<<<<<< HEAD
-    // Encrypt two factor secret
-    public function setTwoFactorSecretAttribute($value)
-=======
+
     /**
      * Check if two-factor authentication is enabled for this user.
      */
     public function hasEnabledTwoFactorAuthentication(): bool
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         return $this->two_factor_enabled;
     }
 
-<<<<<<< HEAD
-    // Decrypt recovery codes
-    public function getTwoFactorRecoveryCodesAttribute($value)
-=======
     /**
      * Enable two-factor authentication for this user.
      */
     public function enableTwoFactorAuthentication(): void
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         $this->update(['two_factor_enabled' => true]);
     }
 
-<<<<<<< HEAD
-    // Encrypt recovery codes
-    public function setTwoFactorRecoveryCodesAttribute($value)
-=======
     /**
      * Disable two-factor authentication for this user.
      */
     public function disableTwoFactorAuthentication(): void
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         $this->update(['two_factor_enabled' => false]);
         
@@ -101,18 +80,6 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->otps()->where('is_used', false)->delete();
     }
 
-<<<<<<< HEAD
-    // Check if two-factor auth is fully enabled
-    public function hasEnabledTwoFactorAuthentication()
-    {
-        return $this->two_factor_enabled &&
-               !is_null($this->two_factor_secret) &&
-               !is_null($this->two_factor_confirmed_at);
-    }
-
-    // Generate new recovery codes
-    public function generateRecoveryCodes()
-=======
     /**
      * Generate and send OTP for login.
      */
@@ -130,7 +97,6 @@ class User extends Authenticatable implements MustVerifyEmail
      * Check if the account is currently locked.
      */
     public function isLocked(): bool
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         return $this->locked_until && $this->locked_until->isFuture();
     }
@@ -147,15 +113,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->locked_until->diffInMinutes(now());
     }
 
-<<<<<<< HEAD
-    // Cast isAdmin as a computed attribute
-    protected function isAdmin(): Attribute
-=======
     /**
      * Record a failed login attempt.
      */
     public function recordFailedLogin(string $reason = 'Invalid credentials'): void
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
     {
         $this->increment('failed_login_attempts');
         $this->update(['last_failed_login' => now()]);
@@ -174,9 +135,6 @@ class User extends Authenticatable implements MustVerifyEmail
             $reason
         );
     }
-<<<<<<< HEAD
-}
-=======
 
     /**
      * Record a successful login.
@@ -220,4 +178,3 @@ class User extends Authenticatable implements MustVerifyEmail
         ]);
     }
 }
->>>>>>> 070b6a3d7120939b867109b5f52b402a6f0a1e3e
