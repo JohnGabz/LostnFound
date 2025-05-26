@@ -26,6 +26,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'role',
         'two_factor_enabled',
+        'failed_login_attempts',
+        'locked_until',
+        'last_failed_login',
     ];
 
     /**
@@ -49,6 +52,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
+            'locked_until' => 'datetime',
+            'last_failed_login' => 'datetime',
         ];
     }
 
@@ -98,5 +103,90 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
         
         return $otp;
+    }
+
+    /**
+     * Check if the account is currently locked.
+     */
+    public function isLocked(): bool
+    {
+        return $this->locked_until && $this->locked_until->isFuture();
+    }
+
+    /**
+     * Get the time remaining until unlock (in minutes).
+     */
+    public function getLockoutTimeRemaining(): ?int
+    {
+        if (!$this->isLocked()) {
+            return null;
+        }
+
+        return $this->locked_until->diffInMinutes(now());
+    }
+
+    /**
+     * Record a failed login attempt.
+     */
+    public function recordFailedLogin(string $reason = 'Invalid credentials'): void
+    {
+        $this->increment('failed_login_attempts');
+        $this->update(['last_failed_login' => now()]);
+
+        // Lock account after 5 failed attempts
+        if ($this->failed_login_attempts >= 5) {
+            $this->lockAccount();
+        }
+
+        // Log the attempt
+        LoginAttempt::logAttempt(
+            $this->email,
+            request()->ip(),
+            request()->userAgent(),
+            false,
+            $reason
+        );
+    }
+
+    /**
+     * Record a successful login.
+     */
+    public function recordSuccessfulLogin(): void
+    {
+        $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_failed_login' => null,
+        ]);
+
+        // Log the successful attempt
+        LoginAttempt::logAttempt(
+            $this->email,
+            request()->ip(),
+            request()->userAgent(),
+            true
+        );
+    }
+
+    /**
+     * Lock the account for a specified duration.
+     */
+    public function lockAccount(int $minutes = 30): void
+    {
+        $this->update([
+            'locked_until' => now()->addMinutes($minutes),
+        ]);
+    }
+
+    /**
+     * Unlock the account manually.
+     */
+    public function unlockAccount(): void
+    {
+        $this->update([
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'last_failed_login' => null,
+        ]);
     }
 }
