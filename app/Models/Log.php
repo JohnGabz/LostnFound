@@ -10,8 +10,9 @@ class Log extends Model
     use HasFactory;
 
     protected $primaryKey = 'log_id';
-    public $timestamps = false; // Because we are using a custom `timestamp` column
-
+    protected $casts = [
+        'timestamp' => 'datetime',
+    ];
     protected $fillable = [
         'user_id',
         'action',
