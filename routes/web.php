@@ -70,6 +70,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     // Profile
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/claimer/{name}', [ProfileController::class, 'claimer'])->name('profile.claimer');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     // Two-Factor Authentication Setup
     Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
