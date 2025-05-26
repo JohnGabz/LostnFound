@@ -120,7 +120,7 @@
 
                                     <div class="card-footer text-center bg-white border-top-0">
                                         <a href="{{ route('items.show', $claim->item->item_id) }}"
-                                            class="btn btn-outline-primary btn-sm btn-block">View Item</a>
+                                            class="btn btn-outline-primary btn-sm btn-block">View item</a>
                                     </div>
                                 </div>
                             </div>

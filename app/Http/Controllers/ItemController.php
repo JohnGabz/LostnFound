@@ -157,4 +157,26 @@ class ItemController extends Controller
 
         return view('my-items', compact('items'));
     }
+
+    public function markAsClaimed($itemId)
+    {
+        $item = Item::with('claims')->findOrFail($itemId);
+
+        if (auth()->id() !== $item->user_id) {
+            abort(403, 'Unauthorized');
+        }
+
+        $item->status = 'claimed';
+        $item->save();
+
+        // Reject all other claims
+        foreach ($item->claims as $claim) {
+            if ($claim->status !== 'approved') {
+                $claim->status = 'rejected';
+                $claim->save();
+            }
+        }
+
+        return redirect()->back()->with('success', 'Item marked as claimed and other claims rejected.');
+    }
 }

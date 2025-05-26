@@ -54,8 +54,6 @@ class ClaimController extends Controller
 
         $claim = Claim::findOrFail($id);
 
-        // Optionally, authorize if the current user can update claim status here
-
         $claim->status = $request->status;
         $claim->save();
 

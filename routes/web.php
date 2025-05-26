@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::patch('/items/{item}', [ItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');
+    Route::patch('/items/{item}/mark-claimed', [ItemController::class, 'markAsClaimed'])->name('items.markClaimed');
 
     // User-specific items
     Route::get('/my-items', [ItemController::class, 'myItems'])->name('items.my');
@@ -49,6 +50,7 @@ Route::middleware('auth')->group(function () {
 
     // Profile
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile/claimer/{name}', [ProfileController::class, 'claimer'])->name('profile.claimer');
 
     // Matching found and lost items
     Route::get('/items/{item}/match', [ItemController::class, 'match'])->name('items.match');

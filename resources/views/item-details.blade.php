@@ -130,17 +130,27 @@
                                                                                     <td>{{ $claim->created_at->format('M d, Y') }}</td>
                                                                                     <td>{{ Str::limit($claim->message, 50) }}</td>
                                                                                     <td>
-                                                                                        <span class="badge badge-{{ 
-                                                                                                    $claim->status == 'pending' ? 'warning' :
-                                                    ($claim->status == 'approved' ? 'success' : 'danger') 
-                                                                                                }}">
+                                                                                        <span
+                                                                                            class="badge badge-{{ $claim->status == 'pending' ? 'warning' :($claim->status == 'approved' ? 'success' : 'danger') }}">
                                                                                             {{ ucfirst($claim->status) }}
                                                                                         </span>
                                                                                     </td>
                                                                                     <td>
+                                                                                        @if($claim->status == 'approved')
+                                                                                            <form action="{{ route('items.markClaimed', $item->item_id) }}" method="POST" class="d-inline-block ml-1">
+                                                                                                @csrf
+                                                                                                @method('PATCH')
+                                                                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                                                                    Mark as Claimed
+                                                                                                </button>
+                                                                                            </form>
+                                                                                        @endif
+                                                                                    </td>
+                                                                                    <td>
                                                                                         @if($claim->status == 'pending')
                                                                                             <div class="btn-group btn-group-sm">
-                                                                                                <form action="{{ route('claims.update', ['claim' => $claim->claim_id]) }}"
+                                                                                                <form
+                                                                                                    action="{{ route('claims.update', ['claim' => $claim->claim_id]) }}"
                                                                                                     method="POST">
                                                                                                     @csrf
                                                                                                     @method('PATCH')
@@ -149,7 +159,8 @@
                                                                                                         class="btn btn-success mr-1">Approve</button>
                                                                                                 </form>
 
-                                                                                                <form action="{{ route('claims.update', ['claim' => $claim->claim_id]) }}"
+                                                                                                <form
+                                                                                                    action="{{ route('claims.update', ['claim' => $claim->claim_id]) }}"
                                                                                                     method="POST">
                                                                                                     @csrf
                                                                                                     @method('PATCH')
@@ -159,7 +170,7 @@
                                                                                             </div>
                                                                                         @else
                                                                                             <button type="button" class="btn btn-sm btn-info" data-toggle="modal"
-                                                                                                data-target="#viewClaimModal-{{ $claim->claim_id }}">
+                                                                                                data-target="#viewClaimModal-{{ $claim->claimer_id }}">
                                                                                                 View Details
                                                                                             </button>
                                                                                         @endif
@@ -203,40 +214,65 @@
             </form>
         </div>
     </div>
-@endsection
 
-<!-- Claim Modal -->
-<div class="modal fade" id="claimItemModal" tabindex="-1" role="dialog" aria-labelledby="claimItemModalLabel"
-    aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <form action="{{ route('claims.store') }}" method="POST">
-            @csrf
-            <input type="hidden" name="item_id" value="{{ $item->item_id }}">
+    <!-- Claim Modal -->
+    <div class="modal fade" id="claimItemModal" tabindex="-1" role="dialog" aria-labelledby="claimItemModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <form action="{{ route('claims.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="item_id" value="{{ $item->item_id }}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="claimItemModalLabel">Request to Claim Item</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <p>Are you sure you want to claim this item: <strong>{{ $item->title }}</strong>?</p>
+                        <div class="form-group">
+                            <label for="claimMessage">Message (optional)</label>
+                            <textarea name="message" id="claimMessage" class="form-control" rows="3"
+                                placeholder="Add a message (optional)"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">Confirm Claim</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Claimer Modal -->
+    <div class="modal fade" id="viewClaimModal-{{ $claim->claimer_id }}" tabindex="-1" role="dialog"
+        aria-labelledby="viewClaimModalLabel-{{ $claim->claimer_id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="claimItemModalLabel">Request to Claim Item</h5>
+                    <h5 class="modal-title" id="viewClaimModalLabel-{{ $claim->claimer_id }}">Claim Details</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-
                 <div class="modal-body">
-                    <p>Are you sure you want to claim this item: <strong>{{ $item->title }}</strong>?</p>
-                    <div class="form-group">
-                        <label for="claimMessage">Message (optional)</label>
-                        <textarea name="message" id="claimMessage" class="form-control" rows="3"
-                            placeholder="Add a message (optional)"></textarea>
-                    </div>
+                    <p><strong>Claimer Name:</strong> {{ $claim->claimer->name ?? 'N/A' }}</p>
+                    <p><strong>Email:</strong> {{ $claim->claimer->email ?? 'N/A' }}</p>
+                    <p><strong>Claim Message:</strong> {{ $claim->message ?? 'No message provided.' }}</p>
+                    <p><strong>Status:</strong> {{ ucfirst($claim->status) }}</p>
+                    <p><strong>Created At:</strong> {{ $claim->created_at->format('M d, Y') }}</p>
                 </div>
-
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Confirm Claim</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-</div>
+@endsection
 
 @section('scripts')
     <script>
