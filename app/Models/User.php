@@ -6,7 +6,11 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Crypt;
+=======
+use Illuminate\Database\Eloquent\Casts\Attribute;
+>>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -19,7 +23,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $primaryKey = 'user_id';
-    
+
     protected $fillable = [
         'name',
         'email',
@@ -55,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
         ];
     }
 
+<<<<<<< HEAD
     /**
      * Get the user's two factor authentication secret.
      */
@@ -109,3 +114,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $codes;
     }
 }
+=======
+    public function isAdmin(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->role === 'admin',
+        );
+    }
+
+}
+>>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0

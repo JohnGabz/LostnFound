@@ -133,7 +133,7 @@ class ItemController extends Controller
         $item->save();
 
         session()->flash('success', 'Item updated successfully!');
-        return redirect()->route($item->status . '.index');
+        return redirect()->route($item->type . '.index');
     }
 
     public function destroy($id)
@@ -141,9 +141,11 @@ class ItemController extends Controller
         $item = Item::findOrFail($id);
         $this->authorize('delete', $item);
 
+        $type = $item->type; // Save type before deletion
+
         $item->delete();
 
-        return redirect()->back()->with('success', 'Item deleted successfully!');
+        return redirect()->route($type . '.index')->with('success', 'Item deleted successfully!');
     }
 
     // Optional: View my reported items (both lost and found)
