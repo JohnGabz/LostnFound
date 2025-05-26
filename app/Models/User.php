@@ -6,11 +6,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-<<<<<<< HEAD
-use Illuminate\Support\Facades\Crypt;
-=======
-use Illuminate\Database\Eloquent\Casts\Attribute;
->>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -23,7 +19,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var list<string>
      */
     protected $primaryKey = 'user_id';
-
+    
     protected $fillable = [
         'name',
         'email',
@@ -40,8 +36,6 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_secret',
-        'two_factor_recovery_codes',
     ];
 
     /**
@@ -55,72 +49,54 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
-            'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
-<<<<<<< HEAD
     /**
-     * Get the user's two factor authentication secret.
+     * Get the user's OTP codes.
      */
-    public function getTwoFactorSecretAttribute($value)
+    public function otps(): HasMany
     {
-        return $value ? Crypt::decryptString($value) : null;
+        return $this->hasMany(UserOtp::class, 'user_id', 'user_id');
     }
 
     /**
-     * Set the user's two factor authentication secret.
+     * Check if two-factor authentication is enabled for this user.
      */
-    public function setTwoFactorSecretAttribute($value)
+    public function hasEnabledTwoFactorAuthentication(): bool
     {
-        $this->attributes['two_factor_secret'] = $value ? Crypt::encryptString($value) : null;
+        return $this->two_factor_enabled;
     }
 
     /**
-     * Get the user's two factor recovery codes.
+     * Enable two-factor authentication for this user.
      */
-    public function getTwoFactorRecoveryCodesAttribute($value)
+    public function enableTwoFactorAuthentication(): void
     {
-        return $value ? json_decode(Crypt::decryptString($value), true) : null;
+        $this->update(['two_factor_enabled' => true]);
     }
 
     /**
-     * Set the user's two factor recovery codes.
+     * Disable two-factor authentication for this user.
      */
-    public function setTwoFactorRecoveryCodesAttribute($value)
+    public function disableTwoFactorAuthentication(): void
     {
-        $this->attributes['two_factor_recovery_codes'] = $value ? Crypt::encryptString(json_encode($value)) : null;
+        $this->update(['two_factor_enabled' => false]);
+        
+        // Delete all unused OTPs
+        $this->otps()->where('is_used', false)->delete();
     }
 
     /**
-     * Determine if two-factor authentication is enabled.
+     * Generate and send OTP for login.
      */
-    public function hasEnabledTwoFactorAuthentication()
+    public function sendLoginOtp(): UserOtp
     {
-        return $this->two_factor_enabled && 
-               !is_null($this->two_factor_secret) && 
-               !is_null($this->two_factor_confirmed_at);
-    }
-
-    /**
-     * Generate new recovery codes.
-     */
-    public function generateRecoveryCodes()
-    {
-        $codes = [];
-        for ($i = 0; $i < 8; $i++) {
-            $codes[] = strtoupper(bin2hex(random_bytes(5)));
-        }
-        return $codes;
+        $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
+        
+        // Send email notification
+        $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
+        
+        return $otp;
     }
 }
-=======
-    public function isAdmin(): Attribute
-    {
-        return Attribute::make(
-            get: fn() => $this->role === 'admin',
-        );
-    }
-
-}
->>>>>>> c9bc94c54c77c8d0bf73cc27f92cbdd8fc9ba5e0
