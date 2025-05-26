@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Claim;
-use App\Models\Item;
+use App\Models\Notification;
 use App\Models\Log;
 
 class ClaimController extends Controller
@@ -67,6 +67,13 @@ class ClaimController extends Controller
         $claim->message = $request->input('message', 'Claiming this item.');
         $claim->status = 'pending';
         $claim->save();
+
+        Notification::create([
+            'user_id' => auth()->id(),
+            'type' => 'claim',
+            'message' => 'You have submitted a claim for item: ' . $claim->item->title,
+            'is_read' => false,
+        ]);
 
         $this->logAction('Created claim', "Claim ID: {$claim->id}, Item ID: {$claim->item_id}");
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\NotificationController;
 
 // Guest-only routes (Authentication)
 Route::middleware('guest')->group(function () {
@@ -93,6 +94,10 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
 
     // Matching found and lost items
     Route::get('/items/{item}/match', [ItemController::class, 'match'])->name('items.match');
+
+    // Notifications
+    Route::get('/notifications/read/{id}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
 
     // Logs routes
     Route::get('/logs', [LogsController::class, 'index'])->name('logs.index');
