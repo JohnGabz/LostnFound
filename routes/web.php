@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LogsController;
 
 // Guest-only routes (Authentication)
 Route::middleware('guest')->group(function () {
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
 
     // Matching found and lost items
     Route::get('/items/{item}/match', [ItemController::class, 'match'])->name('items.match');
+
+    // Logs routes
+    Route::get('/logs', [LogsController::class, 'index'])->name('logs.index');
 });
 
 // Redirect root to login

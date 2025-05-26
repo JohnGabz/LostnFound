@@ -5,172 +5,201 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Models\Log;  // Add this for DB logs
 use App\Notifications\AccountLockedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log as LaravelLog;
 
 class LoginController extends Controller
 {
+    // Helper method for database logging
+    private function logAction(string $action, ?string $details = null): void
+    {
+        try {
+            Log::create([
+                'user_id' => auth()->id() ?? null, // could be null if no user logged in
+                'action' => $action,
+                'details' => $details,
+            ]);
+        } catch (\Exception $e) {
+            // fallback to file log if DB log fails
+            LaravelLog::error('Failed to log action to database', [
+                'action' => $action,
+                'details' => $details,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
     public function showLoginForm()
     {
+        $this->logAction('Viewed login form');
+
         return view('Authentication.login');
     }
 
     public function login(Request $request)
     {
-        Log::info('Login attempt started', [
+        LaravelLog::info('Login attempt started', [
             'email' => $request->email,
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent()
         ]);
+        $this->logAction('Login attempt started', "Email: {$request->email}, IP: {$request->ip()}");
 
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Check for IP-based rate limiting (prevents brute force from same IP)
         $ipFailedAttempts = LoginAttempt::getRecentFailedAttemptsFromIp($request->ip(), 15);
-        Log::info('IP failed attempts check', ['ip' => $request->ip(), 'attempts' => $ipFailedAttempts]);
-        
+        LaravelLog::info('IP failed attempts check', ['ip' => $request->ip(), 'attempts' => $ipFailedAttempts]);
+        $this->logAction('IP failed attempts check', "IP: {$request->ip()}, Attempts: {$ipFailedAttempts}");
+
         if ($ipFailedAttempts >= 10) {
-            Log::warning('IP rate limit exceeded', ['ip' => $request->ip(), 'attempts' => $ipFailedAttempts]);
+            LaravelLog::warning('IP rate limit exceeded', ['ip' => $request->ip(), 'attempts' => $ipFailedAttempts]);
+            $this->logAction('IP rate limit exceeded', "IP: {$request->ip()}, Attempts: {$ipFailedAttempts}");
             return back()->withErrors([
                 'email' => 'Too many failed attempts from this IP address. Please try again in 15 minutes.',
             ])->onlyInput('email');
         }
 
-        // Find user by email
         $user = User::where('email', $credentials['email'])->first();
-        Log::info('User lookup', [
+        LaravelLog::info('User lookup', [
             'email' => $credentials['email'],
             'user_found' => $user ? 'yes' : 'no',
             'user_id' => $user ? $user->user_id : null
         ]);
+        $this->logAction('User lookup', "Email: {$credentials['email']}, User found: " . ($user ? 'yes' : 'no'));
 
-        // Check if account is locked
         if ($user && $user->isLocked()) {
             $timeRemaining = $user->getLockoutTimeRemaining();
-            Log::warning('Account is locked', [
+            LaravelLog::warning('Account is locked', [
                 'user_id' => $user->user_id,
                 'locked_until' => $user->locked_until,
                 'time_remaining' => $timeRemaining
             ]);
+            $this->logAction('Account locked', "User ID: {$user->user_id}, Locked until: {$user->locked_until}, Time remaining: {$timeRemaining} minutes");
             return back()->withErrors([
                 'email' => "Account is temporarily locked due to multiple failed login attempts. Please try again in {$timeRemaining} minutes.",
             ])->onlyInput('email');
         }
 
         if (Auth::attempt($credentials)) {
-            Log::info('Authentication successful', ['user_id' => Auth::user()->user_id]);
-            
+            LaravelLog::info('Authentication successful', ['user_id' => Auth::user()->user_id]);
+            $this->logAction('Authentication successful', "User ID: " . Auth::user()->user_id);
+
             $request->session()->regenerate();
             $user = Auth::user();
-            
-            // Record successful login
+
             try {
                 $user->recordSuccessfulLogin();
-                Log::info('Successful login recorded', ['user_id' => $user->user_id]);
+                LaravelLog::info('Successful login recorded', ['user_id' => $user->user_id]);
+                $this->logAction('Successful login recorded', "User ID: {$user->user_id}");
             } catch (\Exception $e) {
-                Log::error('Failed to record successful login', [
+                LaravelLog::error('Failed to record successful login', [
                     'user_id' => $user->user_id,
                     'error' => $e->getMessage()
                 ]);
+                $this->logAction('Failed to record successful login', "User ID: {$user->user_id}, Error: " . $e->getMessage());
             }
-            
-            // Check if user's email is verified first
+
             if (!$user->hasVerifiedEmail()) {
-                Log::info('User email not verified, redirecting', ['user_id' => $user->user_id]);
+                LaravelLog::info('User email not verified, redirecting', ['user_id' => $user->user_id]);
+                $this->logAction('User email not verified', "User ID: {$user->user_id}");
                 return redirect('email/verify');
             }
-            
-            // Check if user has 2FA enabled
+
             if ($user->hasEnabledTwoFactorAuthentication()) {
-                Log::info('2FA enabled, sending OTP', ['user_id' => $user->user_id]);
-                
-                // Store user ID in session for 2FA verification
+                LaravelLog::info('2FA enabled, sending OTP', ['user_id' => $user->user_id]);
+                $this->logAction('2FA enabled', "User ID: {$user->user_id}");
+
                 session(['2fa_user_id' => $user->user_id]);
-                
-                // Send OTP to user's email
+
                 try {
                     $user->sendLoginOtp();
                     $message = 'A verification code has been sent to your email address.';
+                    $this->logAction('Login OTP sent', "User ID: {$user->user_id}");
                 } catch (\Exception $e) {
-                    Log::error('Failed to send login OTP', [
+                    LaravelLog::error('Failed to send login OTP', [
                         'user_id' => $user->user_id,
                         'error' => $e->getMessage()
                     ]);
+                    $this->logAction('Failed to send login OTP', "User ID: {$user->user_id}, Error: " . $e->getMessage());
                     $message = 'Please check your email for the verification code.';
                 }
-                
-                // Logout user temporarily until 2FA is verified
+
                 Auth::logout();
-                
+
                 return redirect()->route('two-factor.challenge')->with('status', $message);
             }
-            
-            Log::info('Login completed successfully', ['user_id' => $user->user_id]);
+
+            LaravelLog::info('Login completed successfully', ['user_id' => $user->user_id]);
+            $this->logAction('Login completed', "User ID: {$user->user_id}");
             return redirect()->intended('dashboard');
         }
 
-        Log::warning('Authentication failed', ['email' => $credentials['email']]);
+        LaravelLog::warning('Authentication failed', ['email' => $credentials['email']]);
+        $this->logAction('Authentication failed', "Email: {$credentials['email']}");
 
-        // Handle failed login attempt
         if ($user) {
-            Log::info('Recording failed login for existing user', [
+            LaravelLog::info('Recording failed login for existing user', [
                 'user_id' => $user->user_id,
                 'current_attempts' => $user->failed_login_attempts
             ]);
-            
+            $this->logAction('Failed login attempt', "User ID: {$user->user_id}, Attempts: {$user->failed_login_attempts}");
+
             try {
                 $user->recordFailedLogin('Invalid password');
-                Log::info('Failed login recorded', [
+                LaravelLog::info('Failed login recorded', [
                     'user_id' => $user->user_id,
                     'new_attempts_count' => $user->fresh()->failed_login_attempts
                 ]);
-                
-                // Refresh user data
+                $this->logAction('Failed login recorded', "User ID: {$user->user_id}, New attempts count: " . $user->fresh()->failed_login_attempts);
+
                 $user = $user->fresh();
-                
-                // Send account locked notification if just locked
+
                 if ($user->failed_login_attempts >= 5) {
-                    Log::warning('Account locked due to failed attempts', [
+                    LaravelLog::warning('Account locked due to failed attempts', [
                         'user_id' => $user->user_id,
                         'failed_attempts' => $user->failed_login_attempts
                     ]);
-                    
+                    $this->logAction('Account locked', "User ID: {$user->user_id}, Failed attempts: {$user->failed_login_attempts}");
+
                     try {
                         $user->notify(new AccountLockedNotification(30, $request->ip()));
-                        Log::info('Account locked notification sent', ['user_id' => $user->user_id]);
+                        LaravelLog::info('Account locked notification sent', ['user_id' => $user->user_id]);
+                        $this->logAction('Account locked notification sent', "User ID: {$user->user_id}");
                     } catch (\Exception $e) {
-                        Log::error('Failed to send account locked notification', [
+                        LaravelLog::error('Failed to send account locked notification', [
                             'user_id' => $user->user_id,
                             'error' => $e->getMessage()
                         ]);
+                        $this->logAction('Failed to send account locked notification', "User ID: {$user->user_id}, Error: " . $e->getMessage());
                     }
-                    
+
                     return back()->withErrors([
                         'email' => 'Account has been locked due to multiple failed login attempts. Please check your email for details.',
                     ])->onlyInput('email');
                 }
-                
+
                 $remainingAttempts = 5 - $user->failed_login_attempts;
                 return back()->withErrors([
                     'email' => "Invalid credentials. You have {$remainingAttempts} attempt(s) remaining before your account is locked.",
                 ])->onlyInput('email');
-                
             } catch (\Exception $e) {
-                Log::error('Failed to record failed login attempt', [
+                LaravelLog::error('Failed to record failed login attempt', [
                     'user_id' => $user->user_id,
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
+                $this->logAction('Failed to record failed login attempt', "User ID: {$user->user_id}, Error: " . $e->getMessage());
             }
         } else {
-            Log::info('Recording failed attempt for non-existent user', ['email' => $credentials['email']]);
-            
-            // Log attempt for non-existent user (prevents user enumeration)
+            LaravelLog::info('Recording failed attempt for non-existent user', ['email' => $credentials['email']]);
+            $this->logAction('Failed login attempt for non-existent user', "Email: {$credentials['email']}");
+
             try {
                 $loginAttempt = LoginAttempt::logAttempt(
                     $credentials['email'],
@@ -179,16 +208,18 @@ class LoginController extends Controller
                     false,
                     'User not found'
                 );
-                Log::info('Failed attempt logged for non-existent user', [
+                LaravelLog::info('Failed attempt logged for non-existent user', [
                     'login_attempt_id' => $loginAttempt->id,
                     'email' => $credentials['email']
                 ]);
+                $this->logAction('Failed attempt logged for non-existent user', "Email: {$credentials['email']}");
             } catch (\Exception $e) {
-                Log::error('Failed to log attempt for non-existent user', [
+                LaravelLog::error('Failed to log attempt for non-existent user', [
                     'email' => $credentials['email'],
                     'error' => $e->getMessage(),
                     'trace' => $e->getTraceAsString()
                 ]);
+                $this->logAction('Failed to log attempt for non-existent user', "Email: {$credentials['email']}, Error: " . $e->getMessage());
             }
         }
 
@@ -199,9 +230,12 @@ class LoginController extends Controller
 
     public function logout(Request $request)
     {
+        $this->logAction('User logged out', 'User ID: ' . (auth()->id() ?? 'guest'));
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/');
     }
 }

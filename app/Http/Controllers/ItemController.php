@@ -4,12 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\Claim;
+use App\Models\Log;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ItemController extends Controller
 {
     use AuthorizesRequests;
+
+    // Helper method to log user actions
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
 
     // Show lost items paginated
     public function lostIndex(Request $request)
@@ -52,10 +63,8 @@ class ItemController extends Controller
     // Show details of a single item with claims
     public function show($id)
     {
-        // Eager load user and claims with claimer user info
         $item = Item::with(['user', 'claims.claimer'])->findOrFail($id);
 
-        // Optionally, check if the logged-in user has claimed this item
         $userHasClaimed = false;
         if (auth()->check()) {
             $userHasClaimed = $item->claims()->where('claimer_id', auth()->id())->exists();
@@ -87,7 +96,6 @@ class ItemController extends Controller
         $item->status = 'pending';
         $item->user_id = auth()->id();
 
-        // Handle image upload if exists
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('items', 'public');
             $item->image_path = $path;
@@ -95,16 +103,15 @@ class ItemController extends Controller
 
         $item->save();
 
+        $this->logAction('Created item', "Item ID: {$item->id}, Title: {$item->title}");
+
         session()->flash('success', 'Item reported successfully!');
         return redirect()->route($item->type . '.index');
     }
 
-    // Other CRUD methods, assuming you implement them
     public function edit($id)
     {
         $item = Item::findOrFail($id);
-
-        // Authorization check example (optional)
         $this->authorize('update', $item);
 
         return view('edit-item', compact('item'));
@@ -132,6 +139,8 @@ class ItemController extends Controller
 
         $item->save();
 
+        $this->logAction('Updated item', "Item ID: {$item->id}, Title: {$item->title}");
+
         session()->flash('success', 'Item updated successfully!');
         return redirect()->route($item->type . '.index');
     }
@@ -141,29 +150,27 @@ class ItemController extends Controller
         $item = Item::findOrFail($id);
         $this->authorize('delete', $item);
 
-        $type = $item->type; // Save type before deletion
+        $type = $item->type;
+
+        $this->logAction('Deleted item', "Item ID: {$item->id}, Title: {$item->title}");
 
         $item->delete();
 
         return redirect()->route($type . '.index')->with('success', 'Item deleted successfully!');
     }
 
-    // View my reported items (both lost and found)
     public function myItems()
     {
         $user = auth()->user();
 
-        // Get all items reported by the user
         $items = Item::where('user_id', $user->user_id)->get();
 
-        // Filter by type and status from the $items collection
         $lostItems = $items->where('type', 'lost');
         $foundItems = $items->where('type', 'found');
         $claimedItems = $items->where('status', 'claimed');
 
         return view('my-items', compact('lostItems', 'foundItems', 'claimedItems'));
     }
-
 
     public function markAsClaimed($itemId)
     {
@@ -176,7 +183,8 @@ class ItemController extends Controller
         $item->status = 'claimed';
         $item->save();
 
-        // Reject all other claims
+        $this->logAction('Marked item as claimed', "Item ID: {$item->id}, Title: {$item->title}");
+
         foreach ($item->claims as $claim) {
             if ($claim->status !== 'approved') {
                 $claim->status = 'rejected';

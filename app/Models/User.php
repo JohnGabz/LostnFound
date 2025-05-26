@@ -15,7 +15,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, Notifiable;
 
     protected $primaryKey = 'user_id';
-    
+
     protected $fillable = [
         'name',
         'email',
@@ -52,7 +52,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(UserOtp::class, 'user_id', 'user_id');
     }
 
-
     /**
      * Check if two-factor authentication is enabled for this user.
      */
@@ -75,7 +74,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function disableTwoFactorAuthentication(): void
     {
         $this->update(['two_factor_enabled' => false]);
-        
+
         // Delete all unused OTPs
         $this->otps()->where('is_used', false)->delete();
     }
@@ -86,10 +85,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendLoginOtp(): UserOtp
     {
         $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
-        
+
         // Send email notification
         $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
-        
+
         return $otp;
     }
 
@@ -176,5 +175,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'locked_until' => null,
             'last_failed_login' => null,
         ]);
+    }
+
+    public function getIsAdminAttribute(): bool
+    {
+        return $this->role === 'admin';
     }
 }

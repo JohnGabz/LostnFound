@@ -132,7 +132,7 @@
                     <div class="mt-2 text-uppercase text-primary font-weight-bold small">
                         {{ strtoupper(Auth::user()->role ?? 'USER') }}
                     </div>
-                    
+
                     <!-- 2FA Status Badge -->
                     @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                         <div class="mt-1">
@@ -172,7 +172,15 @@
                         class="sidebar-link nav-link px-3 py-2 rounded {{ Request::is('claims*') ? 'bg-primary text-white' : 'text-dark' }}">
                         <i class="fas fa-clipboard-check mr-2"></i> Claimed Posts
                     </a>
+
+                    @if(auth()->user() && auth()->user()->isAdmin)
+                        <a href="{{ route('logs.index') }}"
+                            class="sidebar-link nav-link px-3 py-2 rounded {{ Request::is('logs*') ? 'bg-primary text-white' : 'text-dark' }}">
+                            <i class="fas fa-history mr-2"></i> Logs
+                        </a>
+                    @endif
                 </nav>
+
             @endauth
         </div>
 
@@ -225,7 +233,7 @@
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=6366F1&color=fff&size=32"
                                             class="rounded-circle mr-2" alt="Avatar">
                                         <span class="font-weight-semibold text-dark">{{ Auth::user()->name }}</span>
-                                        
+
                                         <!-- 2FA Status Indicator -->
                                         @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                                             <i class="fas fa-shield-alt text-success ml-1" title="2FA Enabled"></i>
@@ -241,12 +249,12 @@
                                         <a class="dropdown-item" href="{{ route('items.my') }}">
                                             <i class="fas fa-box mr-2"></i> My Items
                                         </a>
-                                        
+
                                         <div class="dropdown-divider"></div>
-                                        
+
                                         <!-- Two-Factor Authentication Link -->
                                         <a class="dropdown-item" href="{{ route('two-factor.show') }}">
-                                            <i class="fas fa-shield-alt mr-2"></i> 
+                                            <i class="fas fa-shield-alt mr-2"></i>
                                             Two-Factor Authentication
                                             @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                                                 <span class="badge badge-success ml-1">ON</span>
@@ -254,7 +262,7 @@
                                                 <span class="badge badge-warning ml-1">OFF</span>
                                             @endif
                                         </a>
-                                        
+
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item" href="{{ route('logout') }}"
                                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">

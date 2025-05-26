@@ -5,9 +5,20 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Claim;
 use App\Models\Item;
+use App\Models\Log;
 
 class ClaimController extends Controller
 {
+    // Helper method to log user actions
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
     public function index()
     {
         // Fetch claims grouped by status, eager load related models for efficiency
@@ -43,6 +54,8 @@ class ClaimController extends Controller
         $claim->status = 'pending';
         $claim->save();
 
+        $this->logAction('Created claim', "Claim ID: {$claim->id}, Item ID: {$claim->item_id}");
+
         return redirect()->back()->with('success', 'Claim submitted successfully. We will review it soon.');
     }
 
@@ -53,9 +66,11 @@ class ClaimController extends Controller
         ]);
 
         $claim = Claim::findOrFail($id);
-
+        $oldStatus = $claim->status;
         $claim->status = $request->status;
         $claim->save();
+
+        $this->logAction('Updated claim status', "Claim ID: {$claim->id}, From: {$oldStatus} To: {$claim->status}");
 
         return redirect()->back()->with('success', 'Claim status updated!');
     }
