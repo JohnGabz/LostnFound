@@ -19,6 +19,11 @@ class Item extends Model
         'image_path',
         'status',   // 'lost' or 'found'
         'user_id',  // owner of the item
+        'date_lost_found', // make sure this is fillable too
+    ];
+
+    protected $casts = [
+        'date_lost_found' => 'datetime',
     ];
 
     /**
@@ -26,7 +31,7 @@ class Item extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

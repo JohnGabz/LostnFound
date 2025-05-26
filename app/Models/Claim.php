@@ -9,6 +9,8 @@ class Claim extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'claim_id';
+    
     protected $fillable = [
         'item_id',
         'claimer_id',  // user who claimed the item
