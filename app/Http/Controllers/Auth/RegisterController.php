@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Auth\Events\Registered;
 
 class RegisterController extends Controller
 {
@@ -29,8 +30,11 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
+        // Fire the Registered event to send verification email
+        event(new Registered($user));
+
         Auth::login($user);
         
-        return redirect('dashboard');
+        return redirect('email/verify')->with('status', 'A verification link has been sent to your email address.');
     }
 }
