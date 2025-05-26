@@ -3,33 +3,36 @@
 @section('title', 'System Logs')
 
 @section('content')
-    <div class="container-fluid mt-4">
-        <div class="card shadow rounded">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h4 class="mb-0">System Logs</h4>
-            </div>
+    <div class="container-fluid px-4 py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0">System Logs</h2>
+        </div>
 
+        <div class="card shadow-sm rounded">
             <div class="card-body">
                 @if ($logs->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered align-middle">
+                        <table class="table table-bordered table-hover align-middle">
                             <thead class="table-light">
-                                <tr>
-                                    <th>#</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                    <th>Timestamp</th>
+                                <tr class="text-center text-uppercase small fw-semibold">
+                                    <th style="width: 5%">#</th>
+                                    <th style="width: 20%">User</th>
+                                    <th style="width: 15%">Action</th>
+                                    <th style="width: 40%">Details</th>
+                                    <th style="width: 20%">Timestamp</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="fs-6">
                                 @foreach ($logs as $index => $log)
                                     <tr>
-                                        <td>{{ $logs->firstItem() + $index }}</td>
-                                        <td>{{ $log->user->name ?? 'Unknown' }} (ID: {{ $log->user_id }})</td>
-                                        <td>{{ $log->action }}</td>
+                                        <td class="text-center">{{ $logs->firstItem() + $index }}</td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $log->user->name ?? 'Unknown' }}</div>
+                                            <div class="text-muted small">ID: {{ $log->user_id }}</div>
+                                        </td>
+                                        <td class="text-center text-capitalize">{{ $log->action }}</td>
                                         <td>{{ $log->details ?? '—' }}</td>
-                                        <td>{{ $log->timestamp->format('Y-m-d H:i:s') }}</td>
+                                        <td class="text-muted small text-center">{{ $log->timestamp->format('M d, Y h:i A') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -37,12 +40,13 @@
                     </div>
 
                     <!-- Pagination -->
-                    <div class="mt-3">
+                    <div class="d-flex justify-content-center mt-3">
                         {{ $logs->links() }}
                     </div>
                 @else
-                    <div class="alert alert-info">
-                        No logs available at the moment.
+                    <div class="alert alert-info text-center">
+                        <h5 class="fw-semibold">No logs available</h5>
+                        <p class="mb-0">There are no system logs to display at the moment.</p>
                     </div>
                 @endif
             </div>

@@ -198,6 +198,7 @@
                                     'lost.index' => 'Lost Posts',
                                     'claims.index' => 'Claimed Posts',
                                     'items.index' => 'Items',
+                                    'logs.index' => 'Logs',
                                     'items.my' => 'My Items',
                                     'profile.edit' => 'Edit Profile',
                                     'two-factor.show' => 'Two-Factor Authentication',
@@ -278,6 +279,8 @@
                 </div>
             </nav>
 
+            <!-- Place this inside your layout, e.g., layouts/app.blade.php -->
+
             <main class="content-wrapper">
                 <div class="container-fluid">
                     @includeWhen(session('success'), 'components.alert', ['type' => 'success', 'message' => session('success')])
@@ -285,9 +288,34 @@
                     @includeWhen(session('warning'), 'components.alert', ['type' => 'warning', 'message' => session('warning')])
                     @includeWhen(session('info'), 'components.alert', ['type' => 'info', 'message' => session('info')])
 
+                    {{-- ✅ Popup Success Toast --}}
+                    @if (session('success'))
+                        <div aria-live="polite" aria-atomic="true" style="position: relative;">
+                            <div class="toast-container position-fixed bottom-0 right-0 p-3"
+                                style="z-index: 1055; right: 1rem; bottom: 1rem;">
+                                <div class="toast bg-success text-white show" role="alert" aria-live="assertive"
+                                    aria-atomic="true" data-delay="5000">
+                                    <div class="toast-header bg-success text-white">
+                                        <strong class="mr-auto"><i class="fas fa-check-circle"></i> Success</strong>
+                                        <small class="text-white">Just now</small>
+                                        <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast"
+                                            aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="toast-body">
+                                        {{ session('success') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Your page content --}}
                     @yield('content')
                 </div>
             </main>
+
 
             <footer class="bg-white py-4 border-top text-center">
                 <p class="mb-0 text-muted">&copy; {{ date('Y') }} {{ config('app.name') }} - Digital Lost & Found
@@ -301,6 +329,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="{{ asset('js/app.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.toast').toast('show');
+        });
+    </script>
 
     @yield('scripts')
 </body>

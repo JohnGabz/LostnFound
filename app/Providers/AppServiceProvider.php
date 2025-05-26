@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Item;
 use App\Policies\ItemPolicy;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,5 +22,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+        Paginator::useBootstrap();
     }
 }

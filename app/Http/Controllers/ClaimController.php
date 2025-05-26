@@ -21,24 +21,29 @@ class ClaimController extends Controller
 
     public function index()
     {
-        // Fetch claims grouped by status, eager load related models for efficiency
+        $userId = auth()->id();
+
         $pendingClaims = Claim::with(['item.user', 'claimer'])
             ->where('status', 'pending')
+            ->where('claimer_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         $approvedClaims = Claim::with(['item.user', 'claimer'])
             ->where('status', 'approved')
+            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $rejectedClaims = Claim::with(['item.user', 'claimer'])
             ->where('status', 'rejected')
+            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         return view('claim-items', compact('pendingClaims', 'approvedClaims', 'rejectedClaims'));
     }
+
 
     public function store(Request $request)
     {
@@ -46,6 +51,15 @@ class ClaimController extends Controller
             'item_id' => 'required|exists:items,item_id',
             'message' => 'required|string|max:1000',
         ]);
+
+        $existingClaim = Claim::where('item_id', $request->item_id)
+            ->where('claimer_id', auth()->id())
+            ->where('status', 'pending') // optional: restrict to only pending duplicates
+            ->first();
+
+        if ($existingClaim) {
+            return redirect()->back()->with('error', 'You have already claimed this item.');
+        }
 
         $claim = new Claim();
         $claim->item_id = $request->item_id;
@@ -58,6 +72,7 @@ class ClaimController extends Controller
 
         return redirect()->back()->with('success', 'Claim submitted successfully. We will review it soon.');
     }
+
 
     public function update(Request $request, $id)
     {
