@@ -70,17 +70,6 @@ class ItemController extends Controller
         }
     }
 
-
-    public function update(Request $request, Item $item)
-    {
-        // Authorization check
-        if ($item->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
-            abort(403, 'Unauthorized');
-        }
-
-        return view('edit-item', compact('item'));
-    }
-
     // Update item
     public function update(Request $request, $id)
     {
@@ -198,9 +187,6 @@ class ItemController extends Controller
     {
         $user = auth()->user();
 
-        $items = Item::where('user_id', $userId)
-            ->with('claims')
-            ->orderBy('created_at', 'desc')
         $items = Item::where('user_id', Auth::id())
             ->with([
                 'claims' => function ($query) {
@@ -215,8 +201,6 @@ class ItemController extends Controller
         $claimedItems = $items->where('status', 'claimed');
 
         return view('my-items', compact('lostItems', 'foundItems', 'claimedItems'));
-
-        return view('my-items', compact('items'));
     }
 
     public function edit(Item $item)
