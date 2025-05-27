@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable; 
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -13,7 +14,7 @@ use Carbon\Carbon;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory;
+    use HasFactory, Notifiable; 
 
     protected $primaryKey = 'user_id';
 
@@ -111,10 +112,8 @@ class User extends Authenticatable implements MustVerifyEmail
 
             $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
 
-            // Send email notification
-
-            Notification::route('mail', $this->email)
-                ->notify(new LoginOtpNotification($otp->otp_code));
+            // Send email notification - Now this should work with Notifiable trait
+            $this->notify(new LoginOtpNotification($otp->otp_code));
 
             Log::info('Login OTP sent', [
                 'user_id' => $this->user_id,
@@ -408,5 +407,4 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->role === 'admin';
     }
-
 }
