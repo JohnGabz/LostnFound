@@ -125,6 +125,10 @@ class ItemController extends Controller
 
     private function handleImageUpload($file)
     {
+        if (!$file) {
+            return null; // If no file was uploaded, return null
+        }
+
         try {
             // Generate unique filename
             $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
@@ -138,6 +142,7 @@ class ItemController extends Controller
             return null;
         }
     }
+
 
     public function lostIndex(Request $request)
     {
