@@ -29,11 +29,12 @@ class LoginController extends Controller
     private function logAction(string $action, ?string $details = null): void
     {
         Log::create([
-            'user_id' => auth()->check() ? auth()->id() : null,
+            'user_id' => auth()->id() ?? null,
             'action' => $action,
             'details' => $details,
         ]);
     }
+
 
 
     public function showLoginForm(): View
@@ -71,8 +72,6 @@ class LoginController extends Controller
             'user_agent' => $request->userAgent()
         ]);
 
-        $this->logAction('Login attempt started', "Email: {$request->email}, IP: {$request->ip()}");
-
         // Validate input with enhanced rules
         $credentials = $this->validateLoginRequest($request);
 
@@ -95,7 +94,6 @@ class LoginController extends Controller
             'user_found' => $user ? 'yes' : 'no',
             'user_id' => $user?->user_id
         ]);
-        $this->logAction('User lookup', "Email: {$credentials['email']}, User found: " . ($user ? 'yes' : 'no'));
 
         if ($user && $user->isLocked()) {
             $timeRemaining = $user->getLockoutTimeRemaining();
