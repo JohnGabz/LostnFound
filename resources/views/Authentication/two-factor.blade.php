@@ -104,26 +104,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Test OTP Feature (Development only) -->
-                        @if (app()->environment('local'))
-                        <div class="card border-info mb-4">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0 font-weight-bold">
-                                    <i class="fas fa-flask mr-2"></i>Test Email OTP (Development Only)
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <p class="mb-3">Send a test OTP to your email to verify the system is working.</p>
-                                <button type="button" class="btn btn-info" id="testOtpBtn">
-                                    <i class="fas fa-paper-plane mr-1"></i> Send Test OTP
-                                </button>
-                                <div id="testOtpResult" class="mt-3" style="display: none;"></div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Disable 2FA Section -->
                         <div class="card border-danger">
                             <div class="card-header bg-light border-danger">
                                 <h6 class="mb-0 font-weight-bold text-danger">
