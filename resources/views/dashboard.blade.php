@@ -137,7 +137,7 @@
                 </div>
                 <div class="card-body">
                     <div class="chart-area">
-                        <canvas id="weeklyTrendChart" height="100"></canvas>
+                        <canvas id="weeklyTrendChart" style="height: 300px;"></canvas>
                     </div>
                 </div>
             </div>
@@ -192,8 +192,8 @@
                         @foreach($recentActivity as $activity)
                             <div class="d-flex align-items-center mb-3">
                                 <div class="mr-3">
-                                    <div class="icon-circle bg-{{ $activity['type'] == 'lost' ? 'danger' : 'success' }}">
-                                        <i class="fas fa-{{ $activity['type'] == 'lost' ? 'search' : 'box' }} text-white"></i>
+                                    <div class="icon-circle bg-{{ $activity['type'] == 'item_lost' ? 'danger' : ($activity['type'] == 'item_found' ? 'success' : 'info') }}">
+                                        <i class="fas fa-{{ $activity['type'] == 'item_lost' ? 'search' : ($activity['type'] == 'item_found' ? 'box' : 'check-circle') }} text-white"></i>
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
@@ -203,7 +203,7 @@
                                         </a>
                                     </div>
                                     <div class="small text-gray-500">
-                                        {{ ucfirst($activity['type']) }} by {{ $activity['user'] }} • {{ $activity['time'] }}
+                                        {{ ucfirst(str_replace('item_', '', $activity['type'])) }} {{ $activity['action'] }} by {{ $activity['user'] }} • {{ $activity['time'] }}
                                     </div>
                                 </div>
                             </div>
@@ -244,6 +244,7 @@
 .bg-primary { background-color: #4e73df !important; }
 .bg-success { background-color: #1cc88a !important; }
 .bg-danger { background-color: #e74a3b !important; }
+.bg-info { background-color: #36b9cc !important; }
 .text-primary { color: #4e73df !important; }
 .text-success { color: #1cc88a !important; }
 .text-info { color: #36b9cc !important; }
@@ -271,90 +272,148 @@
 @endsection
 
 @section('scripts')
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Existing Doughnut Chart
-        const ctx = document.getElementById('itemsChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Lost', 'Found', 'Claimed'],
-                datasets: [{
-                    data: [@json($lostCount), @json($foundCount), @json($claimedCount)],
-                    backgroundColor: ['#6366F1', '#60A5FA', '#A5B4FC'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                cutoutPercentage: 70,
-                responsive: true,
-                maintainAspectRatio: false,
-                legend: {
-                    display: false
-                },
-                tooltips: {
-                    callbacks: {
-                        label: function (tooltipItem, data) {
-                            const label = data.labels[tooltipItem.index];
-                            const value = data.datasets[0].data[tooltipItem.index];
-                            const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return `${label}: ${value} items (${percentage}%)`;
-                        }
-                    }
-                }
-            }
+        // Debug: Log data to console
+        console.log('Chart data:', {
+            lost: @json($lostCount),
+            found: @json($foundCount),
+            claimed: @json($claimedCount),
+            weeklyTrend: @json($weeklyTrend)
         });
 
-        // New Weekly Trend Chart
-        const trendCtx = document.getElementById('weeklyTrendChart').getContext('2d');
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: @json($weeklyTrend['dates']),
-                datasets: [{
-                    label: 'Lost Items',
-                    data: @json($weeklyTrend['lost']),
-                    borderColor: '#e74a3b',
-                    backgroundColor: 'rgba(231, 74, 59, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }, {
-                    label: 'Found Items',
-                    data: @json($weeklyTrend['found']),
-                    borderColor: '#1cc88a',
-                    backgroundColor: 'rgba(28, 200, 138, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1
+        // Existing Doughnut Chart
+        const ctx = document.getElementById('itemsChart');
+        if (ctx) {
+            const itemsChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Lost', 'Found', 'Claimed'],
+                    datasets: [{
+                        data: [@json($lostCount), @json($foundCount), @json($claimedCount)],
+                        backgroundColor: ['#6366F1', '#60A5FA', '#A5B4FC'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const label = context.label;
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${label}: ${value} items (${percentage}%)`;
+                                }
+                            }
                         }
                     }
+                }
+            });
+        } else {
+            console.error('itemsChart canvas not found');
+        }
+
+        // New Weekly Trend Chart
+        const trendCtx = document.getElementById('weeklyTrendChart');
+        if (trendCtx) {
+            const weeklyTrendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: @json($weeklyTrend['dates']),
+                    datasets: [{
+                        label: 'Lost Items',
+                        data: @json($weeklyTrend['lost']),
+                        borderColor: '#e74a3b',
+                        backgroundColor: 'rgba(231, 74, 59, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#e74a3b',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }, {
+                        label: 'Found Items',
+                        data: @json($weeklyTrend['found']),
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#1cc88a',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }, {
+                        label: 'Claimed Items',
+                        data: @json($weeklyTrend['claimed']),
+                        borderColor: '#36b9cc',
+                        backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#36b9cc',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
                 },
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top'
-                    }
-                },
-                elements: {
-                    point: {
-                        radius: 4,
-                        hoverRadius: 6
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                color: '#858796'
+                            },
+                            grid: {
+                                color: 'rgba(133, 135, 150, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#858796'
+                            },
+                            grid: {
+                                color: 'rgba(133, 135, 150, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                color: '#5a5c69'
+                            }
+                        }
+                    },
+                    elements: {
+                        point: {
+                            hoverRadius: 8
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            console.error('weeklyTrendChart canvas not found');
+        }
     });
 </script>
 @endsection
