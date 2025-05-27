@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\UserOtp;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -68,7 +69,7 @@ class TwoFactorController extends Controller
             return redirect()->route('login')->withErrors(['email' => 'Session expired. Please login again.']);
         }
         
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if (!$user) {
             return redirect()->route('login')->withErrors(['email' => 'User not found. Please login again.']);
         }
@@ -89,7 +90,7 @@ class TwoFactorController extends Controller
             return response()->json(['error' => 'Session expired. Please login again.'], 400);
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if (!$user) {
             return response()->json(['error' => 'User not found. Please login again.'], 400);
         }
@@ -135,7 +136,7 @@ class TwoFactorController extends Controller
             return back()->withErrors(['otp_code' => 'Session expired. Please login again.']);
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
         if (!$user) {
             return back()->withErrors(['otp_code' => 'User not found. Please login again.']);
         }
