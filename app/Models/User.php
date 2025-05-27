@@ -5,14 +5,15 @@ namespace App\Models;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\LoginOtpNotification;
 use Carbon\Carbon;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable;
+    use HasFactory;
 
     protected $primaryKey = 'user_id';
 
@@ -76,7 +77,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function enableTwoFactorAuthentication(): void
     {
         $this->update(['two_factor_enabled' => true]);
-        
+
         Log::info('Two-factor authentication enabled', ['user_id' => $this->user_id]);
     }
 
@@ -89,7 +90,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
         // Delete all unused OTPs
         $deletedCount = $this->otps()->where('is_used', false)->delete();
-        
+
         Log::info('Two-factor authentication disabled', [
             'user_id' => $this->user_id,
             'deleted_otps' => $deletedCount
@@ -102,23 +103,25 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendLoginOtp(): UserOtp
     {
         try {
-            // Delete any existing unused login OTPs
+            // FIXED: Changed 'purpose' to 'type' to match UserOtp model
             $this->otps()
-                ->where('purpose', 'login')
+                ->where('type', 'login')
                 ->where('is_used', false)
                 ->delete();
 
             $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
-            
+
             // Send email notification
-            $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
-            
+
+            Notification::route('mail', $this->email)
+                ->notify(new LoginOtpNotification($otp->otp_code));
+
             Log::info('Login OTP sent', [
                 'user_id' => $this->user_id,
                 'otp_id' => $otp->id,
                 'expires_at' => $otp->expires_at
             ]);
-            
+
             return $otp;
         } catch (\Exception $e) {
             Log::error('Failed to send login OTP', [
@@ -140,12 +143,12 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         $isLocked = $this->locked_until->isFuture();
-        
+
         // Auto-unlock if lock period has expired
         if (!$isLocked && $this->locked_until->isPast()) {
             $this->unlockAccount();
         }
-        
+
         return $isLocked;
     }
 
@@ -167,7 +170,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function recordFailedLogin(string $reason = 'Invalid credentials'): void
     {
         $currentAttempts = $this->failed_login_attempts;
-        
+
         $this->increment('failed_login_attempts');
         $this->update(['last_failed_login' => now()]);
 
@@ -206,7 +209,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function recordSuccessfulLogin(): void
     {
         $previousAttempts = $this->failed_login_attempts;
-        
+
         $this->update([
             'failed_login_attempts' => 0,
             'locked_until' => null,
@@ -243,7 +246,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function lockAccount(int $minutes = 30): void
     {
         $lockedUntil = now()->addMinutes($minutes);
-        
+
         $this->update([
             'locked_until' => $lockedUntil,
         ]);
@@ -262,7 +265,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function unlockAccount(): void
     {
         $wasLocked = $this->isLocked();
-        
+
         $this->update([
             'failed_login_attempts' => 0,
             'locked_until' => null,
@@ -282,8 +285,9 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getRecentFailedAttemptsCount(int $minutes = 15): int
     {
+        // FIXED: Changed 'success' to 'successful' to match LoginAttempt model
         return LoginAttempt::where('email', $this->email)
-            ->where('success', false)
+            ->where('successful', false)
             ->where('created_at', '>=', now()->subMinutes($minutes))
             ->count();
     }
@@ -299,7 +303,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->get();
 
         $uniqueIps = $recentAttempts->pluck('ip_address')->unique();
-        
+
         // If more than 3 different IPs in the last hour
         if ($uniqueIps->count() > 3) {
             Log::warning('Suspicious login pattern detected', [
@@ -344,7 +348,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $query->where(function ($q) {
             $q->whereNull('locked_until')
-              ->orWhere('locked_until', '<', now());
+                ->orWhere('locked_until', '<', now());
         });
     }
 
@@ -389,4 +393,20 @@ class User extends Authenticatable implements MustVerifyEmail
             }
         });
     }
+
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class, 'user_id', 'user_id');
+    }
+
+    public function getIsAdminAttribute()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
 }

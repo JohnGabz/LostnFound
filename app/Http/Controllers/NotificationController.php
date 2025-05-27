@@ -4,37 +4,34 @@ namespace App\Http\Controllers;
 
 use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
-    public function index()
+    public function markAsRead(Notification $notification)
     {
-        $notifications = Notification::where('user_id', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        return view('notifications.index', compact('notifications'));
-    }
-
-    public function markAsRead($id)
-    {
-        $notification = Notification::where('notification_id', $id)
-            ->where('user_id', auth()->id())
-            ->firstOrFail();
-
-        $notification->is_read = true;
-        $notification->save();
-
+        // Ensure user can only mark their own notifications as read
+        if ($notification->user_id !== Auth::id()) {
+            abort(403);
+        }
+        
+        $notification->update(['is_read' => true]);
+        
+        // Redirect back to the notification's related page if available
+        if ($notification->related_url) {
+            return redirect($notification->related_url);
+        }
+        
         return redirect()->back();
     }
-
+    
     public function markAllRead()
     {
-        Notification::where('user_id', auth()->id())
+        Auth::user()->notifications()
             ->where('is_read', false)
             ->update(['is_read' => true]);
-
-        return redirect()->back()->with('success', 'All notifications marked as read.');
+            
+        return redirect()->back()
+            ->with('success', 'All notifications marked as read.');
     }
-
 }

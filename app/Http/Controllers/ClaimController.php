@@ -5,21 +5,15 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Claim;
 use App\Models\Item;
+use App\Models\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Log as LaravelLog;
 
 class ClaimController extends Controller
 {
-    // Helper method to log user actions
-    private function logAction(string $action, ?string $details = null): void
-    {
-        \App\Models\Log::create([
-            'user_id' => auth()->id(),
-            'action' => $action,
-            'details' => $details,
-        ]);
-    }
-
+    /**
+     * Display user's claims organized by status
+     */
     public function index()
     {
         $userId = auth()->id();
@@ -45,6 +39,9 @@ class ClaimController extends Controller
         return view('claim-items', compact('pendingClaims', 'approvedClaims', 'rejectedClaims'));
     }
 
+    /**
+     * Store a new claim
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -54,10 +51,12 @@ class ClaimController extends Controller
 
         $item = Item::findOrFail($request->item_id);
 
+        // Prevent users from claiming their own items
         if ($item->user_id === auth()->id()) {
             return redirect()->back()->with('error', 'You cannot claim your own item.');
         }
 
+        // Check for existing claims
         $existingClaim = Claim::where('item_id', $request->item_id)
             ->where('claimer_id', auth()->id())
             ->whereIn('status', ['pending', 'approved'])
@@ -70,6 +69,7 @@ class ClaimController extends Controller
             return redirect()->back()->with('error', $message);
         }
 
+        // Check if item is already claimed
         if ($item->status === 'claimed') {
             return redirect()->back()->with('error', 'This item has already been claimed.');
         }
@@ -82,12 +82,14 @@ class ClaimController extends Controller
                 'status' => 'pending',
             ]);
 
-            Log::info('Claim submitted', [
+            LaravelLog::info('Claim submitted', [
                 'claim_id' => $claim->claim_id,
                 'item_id' => $item->item_id,
                 'item_type' => $item->type,
                 'claimer_id' => auth()->id(),
             ]);
+
+            $this->logAction('Claim submitted', "Claim ID: {$claim->claim_id}");
 
             $successMessage = $item->type === 'lost' 
                 ? 'Thank you for reporting that you found this item! The owner will be notified.' 
@@ -95,7 +97,7 @@ class ClaimController extends Controller
 
             return redirect()->back()->with('success', $successMessage);
         } catch (\Exception $e) {
-            Log::error('Failed to submit claim', [
+            LaravelLog::error('Failed to submit claim', [
                 'error' => $e->getMessage(),
                 'item_id' => $item->item_id,
                 'claimer_id' => auth()->id(),
@@ -105,6 +107,9 @@ class ClaimController extends Controller
         }
     }
 
+    /**
+     * Update claim status (approve/reject)
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -117,6 +122,7 @@ class ClaimController extends Controller
             $claim = Claim::with('item')->findOrFail($id);
             $user = auth()->user();
 
+            // Authorization check
             if ($claim->item->user_id !== $user->user_id && $user->role !== 'admin') {
                 return redirect()->back()->with('error', 'Unauthorized action.');
             }
@@ -126,24 +132,29 @@ class ClaimController extends Controller
             $claim->save();
 
             if ($request->status === 'approved') {
+                // Mark item as claimed
                 $claim->item->update(['status' => 'claimed']);
 
+                // Reject other pending claims for the same item
                 Claim::where('item_id', $claim->item_id)
                     ->where('claim_id', '!=', $claim->claim_id)
                     ->where('status', 'pending')
                     ->update(['status' => 'rejected']);
 
-                Log::info('Claim approved and item marked as claimed', [
+                LaravelLog::info('Claim approved and item marked as claimed', [
                     'claim_id' => $claim->claim_id,
                     'item_id' => $claim->item_id,
                     'item_title' => $claim->item->title,
                     'item_type' => $claim->item->type
                 ]);
 
+                $this->logAction('Claim approved', "Claim ID: {$claim->claim_id}");
+
                 $message = $claim->item->type === 'lost' 
                     ? 'Finder confirmed! The item has been marked as claimed and reunited with its owner.'
                     : 'Ownership confirmed! The item has been marked as claimed and returned to its owner.';
             } elseif ($request->status === 'rejected') {
+                // If rejecting a previously approved claim, check if item should be marked as available
                 if ($oldStatus === 'approved') {
                     $otherApprovedClaims = Claim::where('item_id', $claim->item_id)
                         ->where('claim_id', '!=', $claim->claim_id)
@@ -154,6 +165,8 @@ class ClaimController extends Controller
                         $claim->item->update(['status' => 'available']);
                     }
                 }
+
+                $this->logAction('Claim rejected', "Claim ID: {$claim->claim_id}");
 
                 $message = $claim->item->type === 'lost' 
                     ? 'Finder report rejected.' 
@@ -167,7 +180,7 @@ class ClaimController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            Log::error('Failed to update claim', [
+            LaravelLog::error('Failed to update claim', [
                 'claim_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -175,5 +188,17 @@ class ClaimController extends Controller
 
             return redirect()->back()->with('error', 'Failed to update claim status. Please try again.');
         }
+    }
+
+    /**
+     * Log user actions
+     */
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
     }
 }

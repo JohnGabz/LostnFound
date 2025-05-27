@@ -7,6 +7,7 @@ use App\Policies\ItemPolicy;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use App\Models\Notification;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,5 +42,9 @@ class AppServiceProvider extends ServiceProvider
                     ->with('unreadCount', $unreadCount);
             }
         });
+
+        Gate::define('view-logs', function ($user) {
+        return $user->isAdmin();
+    });
     }
 }

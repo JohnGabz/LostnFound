@@ -11,15 +11,18 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rules;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\View\View;
 
 class PasswordResetController extends Controller
 {
-    public function showForgotForm()
+    public function showForgotForm(): View
     {
         return view('Authentication.forgot-password');
     }
 
-    public function sendResetOtp(Request $request)
+    public function sendResetOtp(Request $request): RedirectResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',
@@ -58,7 +61,7 @@ class PasswordResetController extends Controller
         }
     }
 
-    public function showVerifyOtpForm(Request $request)
+    public function showVerifyOtpForm(Request $request): RedirectResponse|View
     {
         $email = $request->session()->get('email') ?? $request->get('email');
 
@@ -71,7 +74,7 @@ class PasswordResetController extends Controller
         return view('Authentication.verify-reset-otp', compact('email'));
     }
 
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request): RedirectResponse
     {
         $request->validate([
             'email' => 'required|email',
@@ -95,7 +98,7 @@ class PasswordResetController extends Controller
             ->with('status', 'Code verified! Please enter your new password.');
     }
 
-    public function showResetForm(Request $request, string $token)
+    public function showResetForm(Request $request, string $token): View
     {
         $email = $request->get('email') ?? session('email');
 
@@ -105,7 +108,7 @@ class PasswordResetController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request): RedirectResponse
     {
         $request->validate([
             'token' => 'required',
@@ -137,7 +140,7 @@ class PasswordResetController extends Controller
         return back()->withErrors(['email' => [__($status)]]);
     }
 
-    public function resendOtp(Request $request)
+    public function resendOtp(Request $request): JsonResponse
     {
         $request->validate([
             'email' => 'required|email|exists:users,email',

@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $lostCount = Item::where('type', 'lost')->where('status', 'available')->count();
         $foundCount = Item::where('type', 'found')->where('status', 'available')->count();
         $claimedCount = Item::where('status', 'claimed')->count();
-        
+
         // Total active posts (excluding claimed items from the main count)
         $totalActivePosts = $lostCount + $foundCount;
         $totalPosts = $totalActivePosts + $claimedCount;
@@ -27,7 +27,7 @@ class DashboardController extends Controller
         $foundPercentage = $totalPosts > 0 ? round(($foundCount / $totalPosts) * 100) : 0;
         $claimedPercentage = $totalPosts > 0 ? round(($claimedCount / $totalPosts) * 100) : 0;
 
-        // New insights data
+        // Get additional dashboard data
         $insights = $this->getInsights();
         $weeklyTrend = $this->getWeeklyTrend();
         $topCategories = $this->getTopCategories();
@@ -77,11 +77,11 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::now()->subDays($i);
             $dates[] = $date->format('M j');
-            
+
             $lostData[] = Item::where('type', 'lost')
                 ->whereDate('created_at', $date)
                 ->count();
-            
+
             $foundData[] = Item::where('type', 'found')
                 ->whereDate('created_at', $date)
                 ->count();
@@ -111,7 +111,7 @@ class DashboardController extends Controller
 
     private function getRecentActivity()
     {
-        // Get recent items and recent claims
+        // Get recent items
         $recentItems = Item::with('user')
             ->orderBy('created_at', 'desc')
             ->limit(3)
@@ -128,6 +128,7 @@ class DashboardController extends Controller
                 ];
             });
 
+        // Get recent claims
         $recentClaims = Item::with('user')
             ->where('status', 'claimed')
             ->orderBy('updated_at', 'desc')
@@ -157,19 +158,14 @@ class DashboardController extends Controller
     {
         $totalItems = Item::count();
         $claimedItems = Item::where('status', 'claimed')->count();
-        
+
         return $totalItems > 0 ? round(($claimedItems / $totalItems) * 100, 1) : 0;
     }
 
     private function getActiveUsersCount()
     {
-        // Count users who have logged in within the last 7 days
-        // If you don't have last_login_at field, use created_at as fallback
         $sevenDaysAgo = Carbon::now()->subDays(7);
-        
-        return User::where(function($query) use ($sevenDaysAgo) {
-            $query->where('last_login_at', '>=', $sevenDaysAgo)
-                  ->orWhere('created_at', '>=', $sevenDaysAgo);
-        })->count();
+
+        return User::where('created_at', '>=', $sevenDaysAgo)->count();
     }
-}   
+}

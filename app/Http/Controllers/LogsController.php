@@ -11,23 +11,17 @@ class LogsController extends Controller
     use AuthorizesRequests;
 
     /**
-     * Display a listing of logs.
+     * Display a listing of logs
      */
     public function index()
     {
-        $this->authorize('viewAny', Log::class);
+        if (!auth()->user()?->isAdmin()) {
+            abort(403, 'Unauthorized');
+        }
 
-        $logs = Log::with('user')->latest()->paginate(20);
+        // Use pagination
+        $logs = Log::with('user')->latest()->paginate(10); // or any number
 
         return view('logs.index', compact('logs'));
-    }
-
-    private function logAction(string $action, ?string $details = null): void
-    {
-        Log::create([
-            'user_id' => auth()->id(),
-            'action' => $action,
-            'details' => $details,
-        ]);
     }
 }

@@ -13,9 +13,12 @@ class Notification extends Model
         'type',
         'message',
         'is_read',
+        'created_at', // ADDED: Need this to be fillable since timestamps are disabled
     ];
 
-    public $timestamps = false;
+    // FIXED: Set timestamps to true and manage created_at properly
+    public $timestamps = true;
+    const UPDATED_AT = null; // Only use created_at
 
     protected $casts = [
         'is_read' => 'boolean',

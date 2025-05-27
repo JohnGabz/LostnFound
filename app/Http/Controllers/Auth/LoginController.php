@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
 use App\Models\User;
-use App\Models\Log;  // Add this for DB logs
+use App\Models\Log;
 use App\Notifications\AccountLockedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Log as LaravelLog;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\RedirectResponse;
@@ -25,40 +26,51 @@ class LoginController extends Controller
     private const MAX_EMAIL_ATTEMPTS = 5;
     private const EMAIL_LOCKOUT_MINUTES = 30;
 
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->check() ? auth()->id() : null,
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
+
     public function showLoginForm(): View
     {
-        $this->logAction('Viewed login form');
-
         return view('Authentication.login');
     }
 
     public function login(Request $request): RedirectResponse
     {
         // Rate limiting key
-        $throttleKey = Str::transliterate(Str::lower($request->input('email')).'|'.$request->ip());
-        
+        $throttleKey = Str::transliterate(Str::lower($request->input('email')) . '|' . $request->ip());
+
         // Check rate limiting first
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
             $seconds = RateLimiter::availableIn($throttleKey);
-            Log::warning('Rate limit exceeded for login', [
+            LaravelLog::warning('Rate limit exceeded for login', [
                 'email' => $request->input('email'),
                 'ip' => $request->ip(),
                 'seconds_remaining' => $seconds
             ]);
-            
+
             throw ValidationException::withMessages([
-                'email' => [__('auth.throttle', [
-                    'seconds' => $seconds,
-                    'minutes' => ceil($seconds / 60),
-                ])],
+                'email' => [
+                    __('auth.throttle', [
+                        'seconds' => $seconds,
+                        'minutes' => ceil($seconds / 60),
+                    ])
+                ],
             ]);
         }
 
-        Log::info('Login attempt started', [
+        LaravelLog::info('Login attempt started', [
             'email' => $request->input('email'),
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent()
         ]);
+
         $this->logAction('Login attempt started', "Email: {$request->email}, IP: {$request->ip()}");
 
         // Validate input with enhanced rules
@@ -66,19 +78,19 @@ class LoginController extends Controller
 
         // Check IP-based rate limiting
         if ($this->isIpBlocked($request->ip())) {
-            Log::warning('IP rate limit exceeded', [
+            LaravelLog::warning('IP rate limit exceeded', [
                 'ip' => $request->ip(),
                 'attempts' => LoginAttempt::getRecentFailedAttemptsFromIp($request->ip(), self::IP_LOCKOUT_MINUTES)
             ]);
-            
+
             throw ValidationException::withMessages([
                 'email' => ['Too many failed attempts from this IP address. Please try again in ' . self::IP_LOCKOUT_MINUTES . ' minutes.'],
             ]);
         }
 
         $user = User::where('email', $credentials['email'])->first();
-        
-        Log::info('User lookup', [
+
+        LaravelLog::info('User lookup', [
             'email' => $credentials['email'],
             'user_found' => $user ? 'yes' : 'no',
             'user_id' => $user?->user_id
@@ -92,7 +104,7 @@ class LoginController extends Controller
                 'locked_until' => $user->locked_until,
                 'time_remaining' => $timeRemaining
             ]);
-            
+
             throw ValidationException::withMessages([
                 'email' => ["Account is temporarily locked due to multiple failed login attempts. Please try again in {$timeRemaining} minutes."],
             ]);
@@ -142,72 +154,72 @@ class LoginController extends Controller
 
     private function handleSuccessfulLogin(Request $request, User $user): RedirectResponse
     {
-        Log::info('Authentication successful', ['user_id' => $user->user_id]);
-        
+        LaravelLog::info('Authentication successful', ['user_id' => $user->user_id]);
+
         // Regenerate session
         $request->session()->regenerate();
-        
+
         try {
             // Record successful login
             $user->recordSuccessfulLogin();
-            Log::info('Successful login recorded', ['user_id' => $user->user_id]);
+            LaravelLog::info('Successful login recorded', ['user_id' => $user->user_id]);
         } catch (\Exception $e) {
-            Log::error('Failed to record successful login', [
+            LaravelLog::error('Failed to record successful login', [
                 'user_id' => $user->user_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             // Don't fail the login for this
         }
-        
+
         // Check email verification
         if (!$user->hasVerifiedEmail()) {
-            Log::info('User email not verified, redirecting', ['user_id' => $user->user_id]);
+            LaravelLog::info('User email not verified, redirecting', ['user_id' => $user->user_id]);
             return redirect()->route('verification.notice')
                 ->with('status', 'Please verify your email address to continue.');
         }
-        
+
         // Handle 2FA if enabled
         if ($user->hasEnabledTwoFactorAuthentication()) {
             return $this->handle2FA($user);
         }
-        
-        Log::info('Login completed successfully', ['user_id' => $user->user_id]);
+
+        LaravelLog::info('Login completed successfully', ['user_id' => $user->user_id]);
         return redirect()->intended('dashboard')
             ->with('success', 'Welcome back, ' . $user->name . '!');
     }
 
     private function handle2FA(User $user): RedirectResponse
     {
-        Log::info('2FA enabled, sending OTP', ['user_id' => $user->user_id]);
-        
+        LaravelLog::info('2FA enabled, sending OTP', ['user_id' => $user->user_id]);
+
         // Store user ID in session for 2FA verification
         session(['2fa_user_id' => $user->user_id]);
-        
+
         try {
             // Send OTP to user's email
             $user->sendLoginOtp();
             $message = 'A verification code has been sent to your email address.';
-            Log::info('2FA OTP sent successfully', ['user_id' => $user->user_id]);
+            LaravelLog::info('2FA OTP sent successfully', ['user_id' => $user->user_id]);
         } catch (\Exception $e) {
-            Log::error('Failed to send login OTP', [
+            LaravelLog::error('Failed to send login OTP', [
                 'user_id' => $user->user_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             $message = 'Please check your email for the verification code.';
         }
-        
+
         // Logout user temporarily until 2FA is verified
         Auth::logout();
-        
+
         return redirect()->route('two-factor.challenge')
             ->with('status', $message);
     }
 
     private function handleFailedLogin(Request $request, ?User $user, string $email): RedirectResponse
     {
-        Log::warning('Authentication failed', ['email' => $email]);
+        LaravelLog::warning('Authentication failed', ['email' => $email]);
 
         if ($user) {
             return $this->handleFailedLoginForExistingUser($request, $user);
@@ -218,49 +230,49 @@ class LoginController extends Controller
 
     private function handleFailedLoginForExistingUser(Request $request, User $user): RedirectResponse
     {
-        Log::info('Recording failed login for existing user', [
+        LaravelLog::info('Recording failed login for existing user', [
             'user_id' => $user->user_id,
             'current_attempts' => $user->failed_login_attempts
         ]);
-        
+
         try {
             $user->recordFailedLogin('Invalid password');
-            Log::info('Failed login recorded', [
+            LaravelLog::info('Failed login recorded', [
                 'user_id' => $user->user_id,
                 'new_attempts_count' => $user->fresh()->failed_login_attempts
             ]);
-            
+
             // Refresh user data
             $user = $user->fresh();
-            
+
             // Check if account is now locked
             if ($user->failed_login_attempts >= self::MAX_EMAIL_ATTEMPTS) {
-                Log::warning('Account locked due to failed attempts', [
+                LaravelLog::warning('Account locked due to failed attempts', [
                     'user_id' => $user->user_id,
                     'failed_attempts' => $user->failed_login_attempts
                 ]);
-                
+
                 $this->sendAccountLockedNotification($user, $request->ip());
-                
+
                 throw ValidationException::withMessages([
                     'email' => ['Account has been locked due to multiple failed login attempts. Please check your email for details.'],
                 ]);
             }
-            
+
             $remainingAttempts = self::MAX_EMAIL_ATTEMPTS - $user->failed_login_attempts;
             throw ValidationException::withMessages([
                 'email' => ["Invalid credentials. You have {$remainingAttempts} attempt(s) remaining before your account is locked."],
             ]);
-            
+
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Failed to record failed login attempt', [
+            LaravelLog::error('Failed to record failed login attempt', [
                 'user_id' => $user->user_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials do not match our records.'],
             ]);
@@ -269,8 +281,8 @@ class LoginController extends Controller
 
     private function handleFailedLoginForNonExistentUser(Request $request, string $email): RedirectResponse
     {
-        Log::info('Recording failed attempt for non-existent user', ['email' => $email]);
-        
+        LaravelLog::info('Recording failed attempt for non-existent user', ['email' => $email]);
+
         try {
             $loginAttempt = LoginAttempt::logAttempt(
                 $email,
@@ -279,13 +291,13 @@ class LoginController extends Controller
                 false,
                 'User not found'
             );
-            
-            Log::info('Failed attempt logged for non-existent user', [
+
+            LaravelLog::info('Failed attempt logged for non-existent user', [
                 'login_attempt_id' => $loginAttempt->id,
                 'email' => $email
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to log attempt for non-existent user', [
+            LaravelLog::error('Failed to log attempt for non-existent user', [
                 'email' => $email,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -304,9 +316,9 @@ class LoginController extends Controller
     {
         try {
             $user->notify(new AccountLockedNotification(self::EMAIL_LOCKOUT_MINUTES, $ip));
-            Log::info('Account locked notification sent', ['user_id' => $user->user_id]);
+            LaravelLog::info('Account locked notification sent', ['user_id' => $user->user_id]);
         } catch (\Exception $e) {
-            Log::error('Failed to send account locked notification', [
+            LaravelLog::error('Failed to send account locked notification', [
                 'user_id' => $user->user_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -317,14 +329,14 @@ class LoginController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         $userId = Auth::id();
-        
+
         Auth::logout();
-        
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
-        Log::info('User logged out', ['user_id' => $userId]);
-        
+
+        LaravelLog::info('User logged out', ['user_id' => $userId]);
+
         return redirect('/')->with('success', 'You have been logged out successfully.');
     }
 }

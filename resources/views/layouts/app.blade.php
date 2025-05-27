@@ -187,7 +187,7 @@
                     </a>
 
                     @if(auth()->user() && auth()->user()->isAdmin)
-                        <a href="{{ route('logs.index') }}"
+                        <a href="{{ route('admin.logs.index') }}"
                             class="sidebar-link nav-link px-3 py-2 rounded {{ Request::is('logs*') ? 'bg-primary text-white' : 'text-dark' }}">
                             <i class="fas fa-history mr-2"></i> Logs
                         </a>
