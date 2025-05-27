@@ -242,7 +242,7 @@
                                         <th>Email</th>
                                         <th>Role</th>
                                         <th>Registered</th>
-                                        <th>Actions</th> <!-- Added Actions column -->
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -254,15 +254,14 @@
                                             <td>{{ $user->created_at->diffForHumans() }}</td>
                                             <td>
                                                 <a href="{{ route('admin.users.edit', $user->user_id) }}"
-                                                    class="btn btn-sm btn-primary me-1">Edit</a>
-
-                                                <form action="{{ route('admin.users.destroy', $user->user_id) }}" method="POST"
-                                                    style="display:inline-block"
-                                                    onsubmit="return confirm('Are you sure you want to delete this user?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                                </form>
+                                                    class="btn btn-sm btn-primary me-1">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <button type="button" 
+                                                    class="btn btn-sm btn-danger" 
+                                                    onclick="showDeleteModal('{{ $user->user_id }}', '{{ $user->name }}', '{{ $user->email }}')">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
                                             </td>
                                         </tr>
                                     @endforeach
@@ -277,6 +276,78 @@
         </div>
     </div>
 
+    <!-- Delete User Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title text-danger" id="deleteUserModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm User Deletion
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <i class="fas fa-user-times fa-3x text-danger opacity-50"></i>
+                        </div>
+                        <p class="mb-2">Are you sure you want to delete this user?</p>
+                        <div class="alert alert-warning" role="alert">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i>
+                                This action cannot be undone. All user data will be permanently removed.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- User Info Display -->
+                    <div class="card bg-light border-0 mb-3">
+                        <div class="card-body py-3">
+                            <div class="row">
+                                <div class="col-4 text-muted small">Name:</div>
+                                <div class="col-8 font-weight-bold" id="deleteUserName"></div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-4 text-muted small">Email:</div>
+                                <div class="col-8" id="deleteUserEmail"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Confirmation Input -->
+                    <div class="mb-3">
+                        <label for="confirmDeleteInput" class="form-label small text-muted">
+                            Type <strong>DELETE</strong> to confirm:
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="confirmDeleteInput" 
+                               placeholder="Type DELETE here"
+                               autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <button type="button" 
+                            class="btn btn-danger" 
+                            id="confirmDeleteBtn" 
+                            disabled
+                            onclick="deleteUser()">
+                        <i class="fas fa-trash me-1"></i>Delete User
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden form for deletion -->
+    <form id="deleteUserForm" method="POST" style="display: none;">
+        @csrf
+        @method('DELETE')
+    </form>
+
 @endsection
 
 @section('scripts')
@@ -284,6 +355,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 
     <script>
+        // Global variable to store user ID for deletion
+        let userToDelete = null;
+
         document.addEventListener('DOMContentLoaded', function () {
             // Debug: Log data to console
             console.log('Chart data:', {
@@ -322,7 +396,7 @@
                                         const value = context.parsed;
                                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                        return ${ label }: ${ value } items(${ percentage } %);
+                                        return `${label}: ${value} items (${percentage}%)`;
                                     }
                                 }
                             }
@@ -422,6 +496,54 @@
             } else {
                 console.error('weeklyTrendChart canvas not found');
             }
+
+            // Modal delete confirmation input handler
+            const confirmInput = document.getElementById('confirmDeleteInput');
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            
+            if (confirmInput && confirmBtn) {
+                confirmInput.addEventListener('input', function() {
+                    if (this.value.toUpperCase() === 'DELETE') {
+                        confirmBtn.disabled = false;
+                        confirmBtn.classList.remove('btn-danger');
+                        confirmBtn.classList.add('btn-danger');
+                    } else {
+                        confirmBtn.disabled = true;
+                    }
+                });
+
+                // Reset form when modal is hidden
+                const modal = document.getElementById('deleteUserModal');
+                if (modal) {
+                    modal.addEventListener('hidden.bs.modal', function() {
+                        confirmInput.value = '';
+                        confirmBtn.disabled = true;
+                        userToDelete = null;
+                    });
+                }
+            }
         });
+
+        // Function to show delete modal
+        function showDeleteModal(userId, userName, userEmail) {
+            userToDelete = userId;
+            
+            // Update modal content
+            document.getElementById('deleteUserName').textContent = userName;
+            document.getElementById('deleteUserEmail').textContent = userEmail;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            modal.show();
+        }
+
+        // Function to delete user
+        function deleteUser() {
+            if (userToDelete) {
+                const form = document.getElementById('deleteUserForm');
+                form.action = `/admin/users/${userToDelete}`;
+                form.submit();
+            }
+        }
     </script>
 @endsection

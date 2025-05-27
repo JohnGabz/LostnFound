@@ -76,25 +76,17 @@ class ItemController extends Controller
         // Authorization check
         $this->authorize('update', $item);
 
+        // Fix validation rules to match form fields
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'category' => 'required|string|max:100',
             'location' => 'required|string|max:255',
-            'date_lost_found' => 'required|date|before_or_equal:today',
+            'date_lost' => 'nullable|date|before_or_equal:today', // Changed from date_lost_found
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'remove_image' => 'boolean'
         ]);
 
-        // Handle image removal
-        if ($request->input('remove_image')) {
-            if ($item->image_path) {
-                Storage::disk('public')->delete($item->image_path);
-                $item->image_path = null;
-            }
-        }
-
-        // Handle new image upload
+        // Handle new image upload first
         if ($request->hasFile('image')) {
             // Delete old image if exists
             if ($item->image_path) {
@@ -104,18 +96,31 @@ class ItemController extends Controller
             $item->image_path = $this->handleImageUpload($request->file('image'));
         }
 
-        // Update other fields
-        $item->update([
+        // Update the item with validated data
+        $updateData = [
             'title' => $validated['title'],
             'description' => $validated['description'],
             'category' => $validated['category'],
             'location' => $validated['location'],
-            'date_lost_found' => $validated['date_lost_found'],
-            'image_path' => $item->image_path
-        ]);
+        ];
 
-        return redirect()->route('items.show', $item)
-            ->with('success', 'Item updated successfully!');
+        // Add date field based on item type
+        if ($item->type === 'lost' && isset($validated['date_lost'])) {
+            $updateData['date_lost'] = $validated['date_lost'];
+        }
+
+        // Add image path if it was updated
+        if (isset($item->image_path)) {
+            $updateData['image_path'] = $item->image_path;
+        }
+
+        $item->update($updateData);
+
+        // Redirect back to the appropriate index page
+        $redirectRoute = $item->type === 'lost' ? 'lost.index' : 'found.index';
+
+        return redirect()->route($redirectRoute)
+            ->with('success', ucfirst($item->type) . ' item updated successfully!');
     }
 
     private function handleImageUpload($file)
@@ -200,17 +205,32 @@ class ItemController extends Controller
 
     public function destroy(Item $item)
     {
+        // Authorization check
         $this->authorize('delete', $item);
 
-        // Delete associated image if exists
-        if ($item->image_path) {
-            Storage::disk('public')->delete($item->image_path);
+        try {
+            // Delete associated image if exists
+            if ($item->image_path && Storage::disk('public')->exists($item->image_path)) {
+                Storage::disk('public')->delete($item->image_path);
+            }
+
+            // Delete associated claims first (if any)
+            $item->claims()->delete();
+
+            // Delete the item
+            $item->delete();
+
+            // Determine redirect route based on item type
+            $redirectRoute = $item->type === 'lost' ? 'lost.index' : 'found.index';
+
+            return redirect()->route($redirectRoute)
+                ->with('success', ucfirst($item->type) . ' item deleted successfully!');
+
+        } catch (\Exception $e) {
+            \Log::error('Item deletion failed: ' . $e->getMessage());
+
+            return back()->with('error', 'Failed to delete item. Please try again.');
         }
-
-        $item->delete();
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Item deleted successfully!');
     }
 
     public function report($type)
