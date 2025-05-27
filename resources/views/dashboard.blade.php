@@ -116,15 +116,18 @@
                             </div>
                             <div class="legend mt-4">
                                 <div class="legend-item text-muted">
-                                    <span class="legend-circle" style="background-color: #e74a3b; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span> 
+                                    <span class="legend-circle"
+                                        style="background-color: #e74a3b; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>
                                     Lost ({{ $lostPercentage ?? 0 }}%)
                                 </div>
                                 <div class="legend-item text-muted">
-                                    <span class="legend-circle" style="background-color: #1cc88a; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span> 
+                                    <span class="legend-circle"
+                                        style="background-color: #1cc88a; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>
                                     Found ({{ $foundPercentage ?? 0 }}%)
                                 </div>
                                 <div class="legend-item text-muted">
-                                    <span class="legend-circle" style="background-color: #36b9cc; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span> 
+                                    <span class="legend-circle"
+                                        style="background-color: #36b9cc; width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px;"></span>
                                     Claimed ({{ $claimedPercentage ?? 0 }}%)
                                 </div>
                             </div>
@@ -228,56 +231,58 @@
     </div>
 
     <!-- User Management -->
-    <div class="row">
-        <div class="col-xl-12 col-lg-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
-                    <span class="badge bg-primary text-white">Total Users: {{ $totalUsers ?? 0 }}</span>
-                </div>
-                <div class="card-body">
-                    @if(isset($recentUsers) && $recentUsers->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Registered</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($recentUsers as $user)
+    @if(auth()->check() && auth()->user()->role === 'admin')
+        <div class="row">
+            <div class="col-xl-12 col-lg-12">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">User Management</h6>
+                        <span class="badge bg-primary text-white">Total Users: {{ $totalUsers ?? 0 }}</span>
+                    </div>
+                    <div class="card-body">
+                        @if(isset($recentUsers) && $recentUsers->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="thead-light">
                                         <tr>
-                                            <td>{{ $user->name }}</td>
-                                            <td>{{ $user->email }}</td>
-                                            <td>{{ $user->role ?? 'User' }}</td>
-                                            <td>{{ $user->created_at->diffForHumans() }}</td>
-                                            <td>
-                                                <a href="{{ route('admin.users.edit', $user->user_id) }}"
-                                                    class="btn btn-sm btn-primary me-1">
-                                                    <i class="fas fa-edit"></i> Edit
-                                                </a>
-                                                <button type="button" 
-                                                    class="btn btn-sm btn-danger" 
-                                                    onclick="showDeleteModal('{{ $user->user_id }}', '{{ $user->name }}', '{{ $user->email }}')">
-                                                    <i class="fas fa-trash"></i> Delete
-                                                </button>
-                                            </td>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Registered</th>
+                                            <th>Actions</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <p class="text-center text-muted mb-0">No users found.</p>
-                    @endif
+                                    </thead>
+                                    <tbody>
+                                        @foreach($recentUsers as $user)
+                                            <tr>
+                                                <td>{{ $user->name }}</td>
+                                                <td>{{ $user->email }}</td>
+                                                <td>{{ $user->role ?? 'User' }}</td>
+                                                <td>{{ $user->created_at->diffForHumans() }}</td>
+                                                <td>
+                                                    <a href="{{ route('admin.users.edit', $user->user_id) }}"
+                                                        class="btn btn-sm btn-primary me-1">
+                                                        <i class="fas fa-edit"></i> Edit
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="showDeleteModal('{{ $user->user_id }}', '{{ $user->name }}', '{{ $user->email }}')">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-center text-muted mb-0">No users found.</p>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
+
 
     <!-- Delete User Modal -->
     <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
@@ -302,7 +307,7 @@
                             </small>
                         </div>
                     </div>
-                    
+
                     <!-- User Info Display -->
                     <div class="card bg-light border-0 mb-3">
                         <div class="card-body py-3">
@@ -316,28 +321,21 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Confirmation Input -->
                     <div class="mb-3">
                         <label for="confirmDeleteInput" class="form-label small text-muted">
                             Type <strong>DELETE</strong> to confirm:
                         </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="confirmDeleteInput" 
-                               placeholder="Type DELETE here"
-                               autocomplete="off">
+                        <input type="text" class="form-control" id="confirmDeleteInput" placeholder="Type DELETE here"
+                            autocomplete="off">
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Cancel
                     </button>
-                    <button type="button" 
-                            class="btn btn-danger" 
-                            id="confirmDeleteBtn" 
-                            disabled
-                            onclick="deleteUser()">
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled onclick="deleteUser()">
                         <i class="fas fa-trash me-1"></i>Delete User
                     </button>
                 </div>
@@ -364,10 +362,10 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Get chart data with defaults
             const lostCount = @json($lostCount ?? 0);
-            const foundCount = @json($foundCount ?? 0);  
+            const foundCount = @json($foundCount ?? 0);
             const claimedCount = @json($claimedCount ?? 0);
             const weeklyTrend = @json($weeklyTrend ?? []);
-            
+
             // Ensure weeklyTrend has required structure
             if (!weeklyTrend.dates) weeklyTrend.dates = [];
             if (!weeklyTrend.lost) weeklyTrend.lost = [];
@@ -384,7 +382,7 @@
 
             // Check if we have any data for the doughnut chart
             const totalItems = lostCount + foundCount + claimedCount;
-            
+
             // Fixed Doughnut Chart
             const ctx = document.getElementById('itemsChart');
             if (ctx) {
@@ -438,7 +436,7 @@
                 if (totalItems === 0) {
                     const canvasPosition = ctx.getBoundingClientRect();
                     const parentElement = ctx.parentElement;
-                    
+
                     // Create or update no data message
                     let noDataElement = parentElement.querySelector('.no-data-message');
                     if (!noDataElement) {
@@ -552,9 +550,9 @@
             // Modal delete confirmation input handler
             const confirmInput = document.getElementById('confirmDeleteInput');
             const confirmBtn = document.getElementById('confirmDeleteBtn');
-            
+
             if (confirmInput && confirmBtn) {
-                confirmInput.addEventListener('input', function() {
+                confirmInput.addEventListener('input', function () {
                     if (this.value.toUpperCase() === 'DELETE') {
                         confirmBtn.disabled = false;
                         confirmBtn.classList.remove('btn-danger');
@@ -567,7 +565,7 @@
                 // Reset form when modal is hidden
                 const modal = document.getElementById('deleteUserModal');
                 if (modal) {
-                    modal.addEventListener('hidden.bs.modal', function() {
+                    modal.addEventListener('hidden.bs.modal', function () {
                         confirmInput.value = '';
                         confirmBtn.disabled = true;
                         userToDelete = null;
@@ -579,11 +577,11 @@
         // Function to show delete modal
         function showDeleteModal(userId, userName, userEmail) {
             userToDelete = userId;
-            
+
             // Update modal content
             document.getElementById('deleteUserName').textContent = userName;
             document.getElementById('deleteUserEmail').textContent = userEmail;
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
             modal.show();

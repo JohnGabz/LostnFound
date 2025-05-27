@@ -59,15 +59,18 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,' . $user->user_id . ',user_id',
             'role' => 'nullable|string|max:50',
         ]);
 
-        $user->update($request->only(['name', 'email', 'role']));
+        $user->name = $request->name;
+        $user->email = $request->email;
+        $user->role = $request->input('role') ?? 'User';
 
-        return redirect()->route('users.index')->with('success', 'User updated successfully.');
+        $user->save();
+
+        return redirect()->route('dashboard')->with('success', 'User updated successfully.');
     }
-
 
     /**
      * Remove the specified resource from storage.
