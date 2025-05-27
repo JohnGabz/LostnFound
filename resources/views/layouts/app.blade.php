@@ -113,6 +113,19 @@
             background-color: #f59e0b;
             color: white;
         }
+
+        .notification-badge {
+            max-width: 40px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            padding: 0.25em 0.5em;
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            z-index: 1000;
+        }
     </style>
 
     @yield('styles')
@@ -132,7 +145,7 @@
                     <div class="mt-2 text-uppercase text-primary font-weight-bold small">
                         {{ strtoupper(Auth::user()->role ?? 'USER') }}
                     </div>
-                    
+
                     <!-- 2FA Status Badge -->
                     @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                         <div class="mt-1">
@@ -172,7 +185,15 @@
                         class="sidebar-link nav-link px-3 py-2 rounded {{ Request::is('claims*') ? 'bg-primary text-white' : 'text-dark' }}">
                         <i class="fas fa-clipboard-check mr-2"></i> Claimed Posts
                     </a>
+
+                    @if(auth()->user() && auth()->user()->isAdmin)
+                        <a href="{{ route('logs.index') }}"
+                            class="sidebar-link nav-link px-3 py-2 rounded {{ Request::is('logs*') ? 'bg-primary text-white' : 'text-dark' }}">
+                            <i class="fas fa-history mr-2"></i> Logs
+                        </a>
+                    @endif
                 </nav>
+
             @endauth
         </div>
 
@@ -190,6 +211,7 @@
                                     'lost.index' => 'Lost Posts',
                                     'claims.index' => 'Claimed Posts',
                                     'items.index' => 'Items',
+                                    'logs.index' => 'Logs',
                                     'items.my' => 'My Items',
                                     'profile.edit' => 'Edit Profile',
                                     'two-factor.show' => 'Two-Factor Authentication',
@@ -197,6 +219,9 @@
                                     'register' => 'Register',
                                     default => config('app.name', 'LostnFound'),
                                 };
+
+                                $notifications = auth()->user()->notifications()->where('is_read', false)->latest()->take(5)->get();
+                                $unreadCount = $notifications->count();
                             @endphp
 
                             {{ $pageTitle }}
@@ -219,13 +244,51 @@
                                     <li class="nav-item"><a class="nav-link" href="{{ route('register') }}">Register</a></li>
                                 @endif
                             @else
+                                @auth
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button"
+                                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                            <i class="fas fa-bell fa-lg text-secondary"></i>
+
+                                            @if($unreadCount > 0)
+                                                <span
+                                                    class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                                                    <span class="visually-hidden">New alerts</span>
+                                                </span>
+                                            @endif
+                                        </a>
+
+                                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="notificationsDropdown">
+                                            <h6 class="dropdown-header">Notifications</h6>
+
+                                            @forelse($notifications as $notification)
+                                                <a href="{{ route('notifications.read', $notification->notification_id) }}"
+                                                    class="dropdown-item d-flex align-items-start {{ !$notification->is_read ? 'fw-bold' : '' }}">
+                                                    <div>
+                                                        <div>{{ \Illuminate\Support\Str::limit($notification->message, 50) }}</div>
+                                                        <small
+                                                            class="text-muted d-block">{{ $notification->created_at->diffForHumans() }}</small>
+                                                    </div>
+                                                </a>
+                                            @empty
+                                                <span class="dropdown-item text-muted small">No notifications</span>
+                                            @endforelse
+
+                                            <div class="dropdown-divider"></div>
+                                            <a class="dropdown-item text-center small text-primary"
+                                                href="{{ route('notifications.markAllRead') }}">
+                                                <i class="fas fa-check-circle me-1"></i> Mark All as Read
+                                            </a>
+                                        </div>
+                                    </li>
+                                @endauth
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown"
                                         role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                         <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->name) }}&background=6366F1&color=fff&size=32"
                                             class="rounded-circle mr-2" alt="Avatar">
                                         <span class="font-weight-semibold text-dark">{{ Auth::user()->name }}</span>
-                                        
+
                                         <!-- 2FA Status Indicator -->
                                         @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                                             <i class="fas fa-shield-alt text-success ml-1" title="2FA Enabled"></i>
@@ -241,12 +304,12 @@
                                         <a class="dropdown-item" href="{{ route('items.my') }}">
                                             <i class="fas fa-box mr-2"></i> My Items
                                         </a>
-                                        
+
                                         <div class="dropdown-divider"></div>
-                                        
+
                                         <!-- Two-Factor Authentication Link -->
                                         <a class="dropdown-item" href="{{ route('two-factor.show') }}">
-                                            <i class="fas fa-shield-alt mr-2"></i> 
+                                            <i class="fas fa-shield-alt mr-2"></i>
                                             Two-Factor Authentication
                                             @if(Auth::user()->hasEnabledTwoFactorAuthentication())
                                                 <span class="badge badge-success ml-1">ON</span>
@@ -254,7 +317,7 @@
                                                 <span class="badge badge-warning ml-1">OFF</span>
                                             @endif
                                         </a>
-                                        
+
                                         <div class="dropdown-divider"></div>
                                         <a class="dropdown-item" href="{{ route('logout') }}"
                                             onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
@@ -277,6 +340,30 @@
                     @includeWhen(session('warning'), 'components.alert', ['type' => 'warning', 'message' => session('warning')])
                     @includeWhen(session('info'), 'components.alert', ['type' => 'info', 'message' => session('info')])
 
+                    {{-- Popup Success Toast --}}
+                    @if (session('success'))
+                        <div aria-live="polite" aria-atomic="true" style="position: relative;">
+                            <div class="toast-container position-fixed bottom-0 right-0 p-3"
+                                style="z-index: 1055; right: 1rem; bottom: 1rem;">
+                                <div class="toast bg-success text-white show" role="alert" aria-live="assertive"
+                                    aria-atomic="true" data-delay="5000">
+                                    <div class="toast-header bg-success text-white">
+                                        <strong class="mr-auto"><i class="fas fa-check-circle"></i> Success</strong>
+                                        <small class="text-white">Just now</small>
+                                        <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast"
+                                            aria-label="Close">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="toast-body">
+                                        {{ session('success') }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Your page content --}}
                     @yield('content')
                 </div>
             </main>
@@ -293,6 +380,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <script src="{{ asset('js/app.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('.toast').toast('show');
+        });
+    </script>
 
     @yield('scripts')
 </body>

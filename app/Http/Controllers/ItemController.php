@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Item;
 use App\Models\Claim;
+use App\Models\Log;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,6 @@ class ItemController extends Controller
     // Show details of a single item with claims
     public function show($id)
     {
-        // Eager load user and claims with claimer user info
         $item = Item::with(['user', 'claims.claimer'])->findOrFail($id);
 
         // Check if the logged-in user has claimed this item

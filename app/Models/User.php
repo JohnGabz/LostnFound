@@ -15,7 +15,7 @@ class User extends Authenticatable implements MustVerifyEmail
     use HasFactory, Notifiable;
 
     protected $primaryKey = 'user_id';
-    
+
     protected $fillable = [
         'name',
         'email',
@@ -86,7 +86,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function disableTwoFactorAuthentication(): void
     {
         $this->update(['two_factor_enabled' => false]);
-        
+
         // Delete all unused OTPs
         $deletedCount = $this->otps()->where('is_used', false)->delete();
         

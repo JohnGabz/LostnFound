@@ -3,14 +3,29 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Log;
 use App\Models\User;
+use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    // Add the reusable logAction method
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
     public function edit()
     {
         $user = auth()->user();
+
+        // Log viewing profile edit page
+        $this->logAction('Viewed profile edit page');
+
         return view('profile', compact('user'));
     }
 
@@ -23,6 +38,9 @@ class ProfileController extends Controller
             $userHasClaimed = $user->claims()->where('claimer_id', auth()->id())->exists();
         }
 
+        // Log viewing claimer profile
+        $this->logAction('Viewed claimer profile', "Claimer ID: {$id}");
+
         return view('components.claimer', compact('user'));
     }
 
@@ -32,13 +50,19 @@ class ProfileController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
-            // other validations...
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users')->ignore($user->user_id, 'user_id'),
+            ],
         ]);
 
         $user->update($request->only('name', 'email'));
 
+        // Log profile update
+        $this->logAction('Updated profile', 'User updated their name or email');
+
         return redirect()->route('profile.edit')->with('success', 'Profile updated successfully.');
     }
-
 }

@@ -10,13 +10,9 @@
                 </div>
 
                 <div class="card-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">{{ session('success') }}</div>
-                    @endif
-
                     <form method="POST" action="{{ route('profile.update') }}">
                         @csrf
-                        @method('PUT')
+                        @method('PATCH')
 
                         {{-- Name --}}
                         <div class="form-group">

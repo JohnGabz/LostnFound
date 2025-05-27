@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Models\Log;  // Add this for DB logs
 use App\Notifications\AccountLockedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -27,6 +28,8 @@ class LoginController extends Controller
 
     public function showLoginForm(): View
     {
+        $this->logAction('Viewed login form');
+
         return view('Authentication.login');
     }
 
@@ -57,6 +60,7 @@ class LoginController extends Controller
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent()
         ]);
+        $this->logAction('Login attempt started', "Email: {$request->email}, IP: {$request->ip()}");
 
         // Validate input with enhanced rules
         $credentials = $this->validateLoginRequest($request);
@@ -73,7 +77,6 @@ class LoginController extends Controller
             ]);
         }
 
-        // Find user by email
         $user = User::where('email', $credentials['email'])->first();
         
         Log::info('User lookup', [
@@ -81,11 +84,11 @@ class LoginController extends Controller
             'user_found' => $user ? 'yes' : 'no',
             'user_id' => $user?->user_id
         ]);
+        $this->logAction('User lookup', "Email: {$credentials['email']}, User found: " . ($user ? 'yes' : 'no'));
 
-        // Check if account is locked
         if ($user && $user->isLocked()) {
             $timeRemaining = $user->getLockoutTimeRemaining();
-            Log::warning('Account is locked', [
+            LaravelLog::warning('Account is locked', [
                 'user_id' => $user->user_id,
                 'locked_until' => $user->locked_until,
                 'time_remaining' => $timeRemaining

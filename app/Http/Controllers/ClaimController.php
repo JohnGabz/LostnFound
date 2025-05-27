@@ -10,6 +10,16 @@ use Illuminate\Support\Facades\Log;
 
 class ClaimController extends Controller
 {
+    // Helper method to log user actions
+    private function logAction(string $action, ?string $details = null): void
+    {
+        Log::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'details' => $details,
+        ]);
+    }
+
     public function index()
     {
         $userId = auth()->id();
@@ -18,23 +28,27 @@ class ClaimController extends Controller
         $pendingClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'pending')
+            ->where('claimer_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         $approvedClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'approved')
+            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $rejectedClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'rejected')
+            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         return view('claim-items', compact('pendingClaims', 'approvedClaims', 'rejectedClaims'));
     }
+
 
     public function store(Request $request)
     {
