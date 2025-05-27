@@ -55,12 +55,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     // Logout route
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    
+
     // Email Verification Routes (user is logged in but email not verified)
     Route::get('/email/verify', [VerificationController::class, 'show'])->name('verification.notice');
     Route::post('/email/verification-notification', [VerificationController::class, 'resend'])
         ->middleware('throttle:6,1')->name('verification.send');
-    
+
     // Email verification callback (signed route for security)
     Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
         ->middleware('signed')->name('verification.verify');
@@ -77,7 +77,7 @@ Route::middleware('auth')->group(function () {
 |
 */
 Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
-    
+
     /*
     |--------------------------------------------------------------------------
     | Dashboard Routes
@@ -85,11 +85,11 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     */
     // Main Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Enhanced Dashboard API Routes (for real-time updates)
     Route::get('/dashboard/realtime', [DashboardController::class, 'getRealtimeData'])->name('dashboard.realtime');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'getChartData'])->name('dashboard.chart-data');
-    
+
     // Dashboard Analytics & Export (optional features)
     Route::get('/dashboard/analytics', [DashboardController::class, 'analytics'])->name('dashboard.analytics');
     Route::get('/dashboard/export', [DashboardController::class, 'exportData'])->name('dashboard.export');
@@ -129,7 +129,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     Route::get('/claims', [ClaimController::class, 'index'])->name('claims.index');
     Route::post('/claims', [ClaimController::class, 'store'])->name('claims.store');
     Route::patch('/claims/{claim}', [ClaimController::class, 'update'])->name('claims.update');
-    
+
     // Bulk claims operations (optional)
     Route::patch('/claims/bulk-update', [ClaimController::class, 'bulkUpdate'])->name('claims.bulk-update');
 
@@ -141,7 +141,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profile/claimer/{name}', [ProfileController::class, 'claimer'])->name('profile.claimer');
-    
+
     // Profile Security Settings
     Route::get('/profile/security', [ProfileController::class, 'security'])->name('profile.security');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
@@ -154,7 +154,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
     Route::post('/two-factor', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
     Route::delete('/two-factor', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
-    
+
     // Development/Testing routes (should be removed in production)
     Route::post('/two-factor/test-otp', [TwoFactorController::class, 'testOtp'])
         ->name('two-factor.test-otp')
@@ -169,11 +169,11 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
         // Search routes
         Route::get('/search/items', [ItemController::class, 'searchApi'])->name('api.items.search');
         Route::get('/search/users', [ProfileController::class, 'searchUsersApi'])->name('api.users.search');
-        
+
         // Quick stats for widgets
         Route::get('/stats/quick', [DashboardController::class, 'quickStats'])->name('api.stats.quick');
         Route::get('/stats/user/{user}', [DashboardController::class, 'userStats'])->name('api.stats.user');
-        
+
         // Notifications
         Route::get('/notifications', [ProfileController::class, 'getNotifications'])->name('api.notifications');
         Route::patch('/notifications/{notification}/read', [ProfileController::class, 'markNotificationRead'])->name('api.notifications.read');
@@ -188,35 +188,35 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
         // Admin Dashboard
         Route::get('/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
         Route::get('/system-health', [DashboardController::class, 'systemHealth'])->name('admin.system-health');
-        
+
         // User Management
         Route::get('/users', [ProfileController::class, 'adminUsersList'])->name('admin.users.index');
         Route::get('/users/{user}', [ProfileController::class, 'adminUserShow'])->name('admin.users.show');
         Route::patch('/users/{user}/status', [ProfileController::class, 'updateUserStatus'])->name('admin.users.status');
         Route::delete('/users/{user}', [ProfileController::class, 'deleteUser'])->name('admin.users.delete');
-        
+
         // Items Management
         Route::get('/items', [ItemController::class, 'adminItemsList'])->name('admin.items.index');
         Route::patch('/items/{item}/moderate', [ItemController::class, 'moderateItem'])->name('admin.items.moderate');
         Route::delete('/items/{item}/force', [ItemController::class, 'forceDeleteItem'])->name('admin.items.force-delete');
-        
+
         // Claims Management
         Route::get('/claims', [ClaimController::class, 'adminClaimsList'])->name('admin.claims.index');
         Route::patch('/claims/{claim}/moderate', [ClaimController::class, 'moderateClaim'])->name('admin.claims.moderate');
-        
+
         // System Settings
         Route::get('/settings', [DashboardController::class, 'systemSettings'])->name('admin.settings');
         Route::patch('/settings', [DashboardController::class, 'updateSystemSettings'])->name('admin.settings.update');
-        
+
         // Reports & Analytics
         Route::get('/reports', [DashboardController::class, 'adminReports'])->name('admin.reports');
         Route::get('/analytics/advanced', [DashboardController::class, 'advancedAnalytics'])->name('admin.analytics.advanced');
-        
+
         // Security & Audit Logs
         Route::get('/security/logs', [DashboardController::class, 'securityLogs'])->name('admin.security.logs');
         Route::get('/security/failed-logins', [DashboardController::class, 'failedLogins'])->name('admin.security.failed-logins');
     });
-    
+
     /*
     |--------------------------------------------------------------------------
     | Moderator Routes (if user has moderator privileges)
@@ -227,7 +227,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
         Route::get('/items/pending', [ItemController::class, 'pendingModeration'])->name('moderate.items.pending');
         Route::patch('/items/{item}/approve', [ItemController::class, 'approveItem'])->name('moderate.items.approve');
         Route::patch('/items/{item}/reject', [ItemController::class, 'rejectItem'])->name('moderate.items.reject');
-        
+
         // Claims Moderation
         Route::get('/claims/flagged', [ClaimController::class, 'flaggedClaims'])->name('moderate.claims.flagged');
         Route::patch('/claims/{claim}/resolve', [ClaimController::class, 'resolveClaim'])->name('moderate.claims.resolve');
@@ -280,17 +280,17 @@ Route::fallback(function () {
 //     Route::get('/mail/preview/welcome', function () {
 //         return new App\Mail\WelcomeMail(App\Models\User::first());
 //     });
-    
+
 //     Route::get('/mail/preview/claim-notification', function () {
 //         return new App\Mail\ClaimNotificationMail(App\Models\Claim::first());
 //     });
-    
+
 //     // Test data seeding routes
 //     Route::get('/dev/seed-test-data', function () {
 //         Artisan::call('db:seed', ['--class' => 'TestDataSeeder']);
 //         return 'Test data seeded successfully!';
 //     });
-    
+
 //     // Performance testing
 //     Route::get('/dev/performance-test', [DashboardController::class, 'performanceTest']);
 // }
