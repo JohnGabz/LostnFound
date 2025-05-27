@@ -255,47 +255,4 @@
         </div>
     </div>
 </div>
-
-@if (app()->environment('local') && $isEnabled)
-<script>
-document.getElementById('testOtpBtn').addEventListener('click', function() {
-    const btn = this;
-    const result = document.getElementById('testOtpResult');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Sending...';
-    
-    fetch('{{ route("two-factor.test-otp") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.otp_code) {
-            result.innerHTML = `
-                <div class="alert alert-success">
-                    <strong>Test OTP sent successfully!</strong><br>
-                    <strong>Code:</strong> <code>${data.otp_code}</code><br>
-                    <strong>Expires:</strong> ${new Date(data.expires_at).toLocaleString()}
-                </div>
-            `;
-        } else {
-            result.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-        }
-        result.style.display = 'block';
-    })
-    .catch(error => {
-        result.innerHTML = `<div class="alert alert-danger">Error sending test OTP. Please try again.</div>`;
-        result.style.display = 'block';
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane mr-1"></i> Send Test OTP';
-    });
-});
-</script>
-@endif
 @endsection
