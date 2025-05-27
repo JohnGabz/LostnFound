@@ -11,9 +11,10 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\LandingController;
 
-// Redirect root to login
-Route::redirect('/', '/login');
+// Redirect root to landing page
+Route::get('/', [LandingController::class, 'index'])->name('home');
 
 // Guest-only routes
 Route::middleware('guest')->group(function () {
