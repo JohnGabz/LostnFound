@@ -14,8 +14,8 @@ class DashboardController extends Controller
     public function index()
     {
         // Item statistics
-        $lostCount = Item::where('type', 'lost')->where('status', 'available')->count();
-        $foundCount = Item::where('type', 'found')->where('status', 'available')->count();
+        $lostCount = Item::where('type', 'lost')->where('status', 'pending')->count();
+        $foundCount = Item::where('type', 'found')->where('status', 'pending')->count();
         $claimedCount = Item::where('status', 'claimed')->count();
 
         $totalActivePosts = $lostCount + $foundCount;
