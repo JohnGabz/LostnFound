@@ -1,189 +1,264 @@
 @extends('layouts.app')
 
+@section('title', 'My Claims')
+
 @section('content')
-    <div class="container-fluid px-4 py-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="font-weight-bold">My Claims</h2>
-        </div>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">My Claims & Reports</h4>
+                    <p class="text-muted mb-0">Track your ownership claims and found item reports</p>
+                </div>
 
-        <ul class="nav nav-tabs mb-4" id="claimsTabs" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="pending-tab" data-toggle="tab" href="#pending" role="tab"
-                    aria-controls="pending" aria-selected="true">
-                    Pending <span class="badge badge-warning">{{ $pendingClaims->count() }}</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="approved-tab" data-toggle="tab" href="#approved" role="tab" aria-controls="approved"
-                    aria-selected="false">
-                    Approved <span class="badge badge-success">{{ $approvedClaims->count() }}</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="rejected-tab" data-toggle="tab" href="#rejected" role="tab" aria-controls="rejected"
-                    aria-selected="false">
-                    Rejected <span class="badge badge-danger">{{ $rejectedClaims->count() }}</span>
-                </a>
-            </li>
-        </ul>
+                <div class="card-body">
+                    <!-- Tabs Navigation -->
+                    <ul class="nav nav-tabs" id="claimsTab" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="pending-tab" data-toggle="tab" href="#pending" role="tab">
+                                Pending <span class="badge badge-warning ml-1">{{ $pendingClaims->count() }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="approved-tab" data-toggle="tab" href="#approved" role="tab">
+                                Approved <span class="badge badge-success ml-1">{{ $approvedClaims->count() }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="rejected-tab" data-toggle="tab" href="#rejected" role="tab">
+                                Rejected <span class="badge badge-danger ml-1">{{ $rejectedClaims->count() }}</span>
+                            </a>
+                        </li>
+                    </ul>
 
-        <div class="tab-content" id="claimsTabsContent">
-            {{-- Pending Claims Tab --}}
-            <div class="tab-pane fade show active" id="pending" role="tabpanel" aria-labelledby="pending-tab">
-                @if($pendingClaims->count() > 0)
-                    <div class="row">
-                        @foreach($pendingClaims as $claim)
-                            <div class="col-md-3 mb-4">
-                                <div class="card h-100 shadow-sm">
-                                    {{-- Card Header with avatar letter and date --}}
-                                    <div class="card-header bg-light d-flex align-items-center">
-                                        <div class="rounded-circle bg-warning text-white d-flex align-items-center justify-content-center mr-2"
-                                            style="width: 35px; height: 35px;">
-                                            {{ strtoupper(substr($claim->item->user->name ?? 'A', 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <div class="font-weight-bold small">{{ $claim->item->user->name ?? 'Unknown' }}</div>
-                                            <div class="text-muted small">{{ $claim->created_at->format('M d, Y') }}</div>
-                                        </div>
+                    <!-- Tabs Content -->
+                    <div class="tab-content" id="claimsTabContent">
+                        <!-- Pending Claims -->
+                        <div class="tab-pane fade show active" id="pending" role="tabpanel">
+                            <div class="mt-4">
+                                @if($pendingClaims->count() > 0)
+                                    <div class="row">
+                                        @foreach($pendingClaims as $claim)
+                                            <div class="col-md-6 mb-4">
+                                                <div class="card border-warning">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <h6 class="card-title">
+                                                                    <a href="{{ route('items.show', $claim->item->item_id) }}" class="text-decoration-none">
+                                                                        {{ $claim->item->title }}
+                                                                    </a>
+                                                                </h6>
+                                                                <p class="text-muted mb-1">
+                                                                    <i class="fas fa-{{ $claim->item->type == 'lost' ? 'search' : 'box' }}"></i>
+                                                                    {{ ucfirst($claim->item->type) }} Item
+                                                                </p>
+                                                                <p class="text-muted mb-2">
+                                                                    <i class="fas fa-map-marker-alt"></i> {{ $claim->item->location }}
+                                                                </p>
+                                                            </div>
+                                                            <span class="badge badge-warning">Pending</span>
+                                                        </div>
+                                                        
+                                                        <p class="card-text">
+                                                            <strong>Your {{ $claim->item->type == 'lost' ? 'Finding Report' : 'Ownership Claim' }}:</strong><br>
+                                                            {{ Str::limit($claim->message, 100) }}
+                                                        </p>
+                                                        
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <small class="text-muted">
+                                                                Submitted {{ $claim->created_at->diffForHumans() }}
+                                                            </small>
+                                                            <a href="{{ route('items.show', $claim->item->item_id) }}" class="btn btn-sm btn-outline-primary">
+                                                                View Details
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
                                     </div>
-
-                                    {{-- Image --}}
-                                    @if($claim->item->image_path)
-                                        <img src="{{ asset('storage/' . $claim->item->image_path) }}" class="card-img-top"
-                                            alt="{{ $claim->item->title }}" style="height: 180px; object-fit: cover;">
-                                    @else
-                                        <div class="card-img-top bg-light d-flex justify-content-center align-items-center"
-                                            style="height: 180px;">
-                                            <i class="fas fa-box fa-3x text-muted"></i>
-                                        </div>
-                                    @endif
-
-                                    {{-- Card Body --}}
-                                    <div class="card-body">
-                                        <h5 class="card-title mb-2">{{ $claim->item->title }}</h5>
-                                        <p class="mb-1"><strong>Status:</strong> <span class="badge badge-warning">Pending</span>
-                                        </p>
-                                        <p class="mb-1"><strong>Message:</strong> {{ Str::limit($claim->message, 100) }}</p>
+                                @else
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No Pending Claims</h5>
+                                        <p class="text-muted">You don't have any pending claims or reports at the moment.</p>
+                                        <a href="{{ route('lost.index') }}" class="btn btn-primary mr-2">Browse Lost Items</a>
+                                        <a href="{{ route('found.index') }}" class="btn btn-success">Browse Found Items</a>
                                     </div>
-
-                                    {{-- Footer with View Button --}}
-                                    <div class="card-footer text-center bg-white border-top-0">
-                                        <a href="{{ route('items.show', $claim->item->item_id) }}"
-                                            class="btn btn-outline-primary btn-sm btn-block">View Item</a>
-                                    </div>
-                                </div>
+                                @endif
                             </div>
-                        @endforeach
+                        </div>
+
+                        <!-- Approved Claims -->
+                        <div class="tab-pane fade" id="approved" role="tabpanel">
+                            <div class="mt-4">
+                                @if($approvedClaims->count() > 0)
+                                    <div class="row">
+                                        @foreach($approvedClaims as $claim)
+                                            <div class="col-md-6 mb-4">
+                                                <div class="card border-success">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <h6 class="card-title">
+                                                                    <a href="{{ route('items.show', $claim->item->item_id) }}" class="text-decoration-none">
+                                                                        {{ $claim->item->title }}
+                                                                    </a>
+                                                                </h6>
+                                                                <p class="text-muted mb-1">
+                                                                    <i class="fas fa-{{ $claim->item->type == 'lost' ? 'search' : 'box' }}"></i>
+                                                                    {{ ucfirst($claim->item->type) }} Item
+                                                                </p>
+                                                                <p class="text-muted mb-2">
+                                                                    <i class="fas fa-map-marker-alt"></i> {{ $claim->item->location }}
+                                                                </p>
+                                                            </div>
+                                                            <span class="badge badge-success">Approved</span>
+                                                        </div>
+                                                        
+                                                        <div class="alert alert-success">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            @if($claim->item->type == 'lost')
+                                                                <strong>Great job!</strong> You helped reunite this item with its owner.
+                                                            @else
+                                                                <strong>Congratulations!</strong> Your ownership has been verified.
+                                                            @endif
+                                                        </div>
+                                                        
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <small class="text-muted">
+                                                                Approved {{ $claim->updated_at->diffForHumans() }}
+                                                            </small>
+                                                            <a href="{{ route('items.show', $claim->item->item_id) }}" class="btn btn-sm btn-outline-success">
+                                                                View Details
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No Approved Claims</h5>
+                                        <p class="text-muted">You haven't had any claims approved yet.</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Rejected Claims -->
+                        <div class="tab-pane fade" id="rejected" role="tabpanel">
+                            <div class="mt-4">
+                                @if($rejectedClaims->count() > 0)
+                                    <div class="row">
+                                        @foreach($rejectedClaims as $claim)
+                                            <div class="col-md-6 mb-4">
+                                                <div class="card border-danger">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start">
+                                                            <div>
+                                                                <h6 class="card-title">
+                                                                    <a href="{{ route('items.show', $claim->item->item_id) }}" class="text-decoration-none">
+                                                                        {{ $claim->item->title }}
+                                                                    </a>
+                                                                </h6>
+                                                                <p class="text-muted mb-1">
+                                                                    <i class="fas fa-{{ $claim->item->type == 'lost' ? 'search' : 'box' }}"></i>
+                                                                    {{ ucfirst($claim->item->type) }} Item
+                                                                </p>
+                                                                <p class="text-muted mb-2">
+                                                                    <i class="fas fa-map-marker-alt"></i> {{ $claim->item->location }}
+                                                                </p>
+                                                            </div>
+                                                            <span class="badge badge-danger">Rejected</span>
+                                                        </div>
+                                                        
+                                                        <p class="card-text">
+                                                            <strong>Your {{ $claim->item->type == 'lost' ? 'Finding Report' : 'Ownership Claim' }}:</strong><br>
+                                                            {{ Str::limit($claim->message, 100) }}
+                                                        </p>
+                                                        
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <small class="text-muted">
+                                                                Rejected {{ $claim->updated_at->diffForHumans() }}
+                                                            </small>
+                                                            <a href="{{ route('items.show', $claim->item->item_id) }}" class="btn btn-sm btn-outline-danger">
+                                                                View Details
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-center py-5">
+                                        <i class="fas fa-times-circle fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">No Rejected Claims</h5>
+                                        <p class="text-muted">You haven't had any claims rejected.</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
                     </div>
-                @else
-                    <div class="alert alert-info text-center">
-                        <h4>No pending claims found</h4>
-                        <p>You haven't submitted any pending claims yet.</p>
-                    </div>
-                @endif
+                </div>
             </div>
 
-            {{-- Approved Claims Tab --}}
-            <div class="tab-pane fade" id="approved" role="tabpanel" aria-labelledby="approved-tab">
-                @if($approvedClaims->count() > 0)
+            <!-- Quick Actions Card -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
                     <div class="row">
-                        @foreach($approvedClaims as $claim)
-                            <div class="col-md-3 mb-4">
-                                <div class="card h-100 shadow-sm">
-                                    <div class="card-header bg-light d-flex align-items-center">
-                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center mr-2"
-                                            style="width: 35px; height: 35px;">
-                                            {{ strtoupper(substr($claim->item->user->name ?? 'A', 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <div class="font-weight-bold small">{{ $claim->item->user->name ?? 'Unknown' }}</div>
-                                            <div class="text-muted small">{{ $claim->updated_at->format('M d, Y') }}</div>
-                                        </div>
-                                    </div>
-
-                                    @if($claim->item->image_path)
-                                        <img src="{{ asset('storage/' . $claim->item->image_path) }}" class="card-img-top"
-                                            alt="{{ $claim->item->title }}" style="height: 180px; object-fit: cover;">
-                                    @else
-                                        <div class="card-img-top bg-light d-flex justify-content-center align-items-center"
-                                            style="height: 180px;">
-                                            <i class="fas fa-box fa-3x text-muted"></i>
-                                        </div>
-                                    @endif
-
-                                    <div class="card-body">
-                                        <h5 class="card-title mb-2">{{ $claim->item->title }}</h5>
-                                        <p class="mb-1"><strong>Status:</strong> <span class="badge badge-success">Approved</span>
-                                        </p>
-                                        <p class="mb-1"><strong>Contact:</strong> {{ $claim->item->user->email }}</p>
-                                    </div>
-
-                                    <div class="card-footer text-center bg-white border-top-0">
-                                        <a href="{{ route('items.show', $claim->item->item_id) }}"
-                                            class="btn btn-outline-primary btn-sm btn-block">View item</a>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ route('lost.index') }}" class="btn btn-outline-danger btn-block">
+                                <i class="fas fa-search"></i><br>
+                                <small>Browse Lost Items</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ route('found.index') }}" class="btn btn-outline-success btn-block">
+                                <i class="fas fa-box"></i><br>
+                                <small>Browse Found Items</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ route('items.report', 'lost') }}" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-plus"></i><br>
+                                <small>Report Lost Item</small>
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ route('items.report', 'found') }}" class="btn btn-outline-info btn-block">
+                                <i class="fas fa-plus"></i><br>
+                                <small>Report Found Item</small>
+                            </a>
+                        </div>
                     </div>
-                @else
-                    <div class="alert alert-info text-center">
-                        <h4>No approved claims found</h4>
-                        <p>You don't have any approved claims yet.</p>
-                    </div>
-                @endif
-            </div>
-
-            {{-- Rejected Claims Tab --}}
-            <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
-                @if($rejectedClaims->count() > 0)
-                    <div class="row">
-                        @foreach($rejectedClaims as $claim)
-                            <div class="col-md-3 mb-4">
-                                <div class="card h-100 shadow-sm">
-                                    <div class="card-header bg-light d-flex align-items-center">
-                                        <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center mr-2"
-                                            style="width: 35px; height: 35px;">
-                                            {{ strtoupper(substr($claim->item->user->name ?? 'A', 0, 1)) }}
-                                        </div>
-                                        <div>
-                                            <div class="font-weight-bold small">{{ $claim->item->user->name ?? 'Unknown' }}</div>
-                                            <div class="text-muted small">{{ $claim->updated_at->format('M d, Y') }}</div>
-                                        </div>
-                                    </div>
-
-                                    @if($claim->item->image_path)
-                                        <img src="{{ asset('storage/' . $claim->item->image_path) }}" class="card-img-top"
-                                            alt="{{ $claim->item->title }}" style="height: 180px; object-fit: cover;">
-                                    @else
-                                        <div class="card-img-top bg-light d-flex justify-content-center align-items-center"
-                                            style="height: 180px;">
-                                            <i class="fas fa-box fa-3x text-muted"></i>
-                                        </div>
-                                    @endif
-
-                                    <div class="card-body">
-                                        <h5 class="card-title mb-2">{{ $claim->item->title }}</h5>
-                                        <p class="mb-1"><strong>Status:</strong> <span class="badge badge-danger">Rejected</span>
-                                        </p>
-                                        <p class="mb-1">Message: {{ Str::limit($claim->message, 100) }}</p>
-                                    </div>
-
-                                    <div class="card-footer text-center bg-white border-top-0">
-                                        <a href="{{ route('items.show', $claim->item->item_id) }}"
-                                            class="btn btn-outline-primary btn-sm btn-block">View Item</a>
-                                    </div>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    <div class="alert alert-info text-center">
-                        <h4>No rejected claims found</h4>
-                        <p>You don't have any rejected claims.</p>
-                    </div>
-                @endif
+                </div>
             </div>
         </div>
     </div>
+</div>
+@endsection
+
+@section('scripts')
+<script>
+$(document).ready(function() {
+    // Activate tab based on URL hash
+    if (window.location.hash) {
+        $('.nav-tabs a[href="' + window.location.hash + '"]').tab('show');
+    }
+    
+    // Add hash to URL when tab is clicked
+    $('.nav-tabs a').on('shown.bs.tab', function (e) {
+        window.location.hash = e.target.getAttribute('href');
+    });
+});
+</script>
 @endsection

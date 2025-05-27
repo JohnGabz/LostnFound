@@ -6,9 +6,9 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -25,6 +25,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'failed_login_attempts',
         'locked_until',
         'last_failed_login',
+        'last_login_at',
+        'last_login_ip',
     ];
 
     protected $hidden = [
@@ -40,10 +42,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'two_factor_enabled' => 'boolean',
             'locked_until' => 'datetime',
             'last_failed_login' => 'datetime',
+            'last_login_at' => 'datetime',
         ];
     }
 
-    // Decrypt two factor secret
     /**
      * Get the user's OTP codes.
      */
@@ -66,6 +68,8 @@ class User extends Authenticatable implements MustVerifyEmail
     public function enableTwoFactorAuthentication(): void
     {
         $this->update(['two_factor_enabled' => true]);
+        
+        Log::info('Two-factor authentication enabled', ['user_id' => $this->user_id]);
     }
 
     /**
@@ -76,7 +80,12 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->update(['two_factor_enabled' => false]);
 
         // Delete all unused OTPs
-        $this->otps()->where('is_used', false)->delete();
+        $deletedCount = $this->otps()->where('is_used', false)->delete();
+        
+        Log::info('Two-factor authentication disabled', [
+            'user_id' => $this->user_id,
+            'deleted_otps' => $deletedCount
+        ]);
     }
 
     /**
@@ -84,6 +93,33 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function sendLoginOtp(): UserOtp
     {
+        try {
+            // Delete any existing unused login OTPs
+            $this->otps()
+                ->where('purpose', 'login')
+                ->where('is_used', false)
+                ->delete();
+
+            $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
+            
+            // Send email notification
+            $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
+            
+            Log::info('Login OTP sent', [
+                'user_id' => $this->user_id,
+                'otp_id' => $otp->id,
+                'expires_at' => $otp->expires_at
+            ]);
+            
+            return $otp;
+        } catch (\Exception $e) {
+            Log::error('Failed to send login OTP', [
+                'user_id' => $this->user_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
         $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
 
         // Send email notification
@@ -97,7 +133,18 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isLocked(): bool
     {
-        return $this->locked_until && $this->locked_until->isFuture();
+        if (!$this->locked_until) {
+            return false;
+        }
+
+        $isLocked = $this->locked_until->isFuture();
+        
+        // Auto-unlock if lock period has expired
+        if (!$isLocked && $this->locked_until->isPast()) {
+            $this->unlockAccount();
+        }
+        
+        return $isLocked;
     }
 
     /**
@@ -109,7 +156,7 @@ class User extends Authenticatable implements MustVerifyEmail
             return null;
         }
 
-        return $this->locked_until->diffInMinutes(now());
+        return max(1, $this->locked_until->diffInMinutes(now()));
     }
 
     /**
@@ -117,8 +164,17 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function recordFailedLogin(string $reason = 'Invalid credentials'): void
     {
+        $currentAttempts = $this->failed_login_attempts;
+        
         $this->increment('failed_login_attempts');
         $this->update(['last_failed_login' => now()]);
+
+        Log::info('Failed login recorded', [
+            'user_id' => $this->user_id,
+            'previous_attempts' => $currentAttempts,
+            'new_attempts' => $this->failed_login_attempts,
+            'reason' => $reason
+        ]);
 
         // Lock account after 5 failed attempts
         if ($this->failed_login_attempts >= 5) {
@@ -126,13 +182,20 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         // Log the attempt
-        LoginAttempt::logAttempt(
-            $this->email,
-            request()->ip(),
-            request()->userAgent(),
-            false,
-            $reason
-        );
+        try {
+            LoginAttempt::logAttempt(
+                $this->email,
+                request()->ip(),
+                request()->userAgent(),
+                false,
+                $reason
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to log login attempt', [
+                'user_id' => $this->user_id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -140,19 +203,36 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function recordSuccessfulLogin(): void
     {
+        $previousAttempts = $this->failed_login_attempts;
+        
         $this->update([
             'failed_login_attempts' => 0,
             'locked_until' => null,
             'last_failed_login' => null,
+            'last_login_at' => now(),
+            'last_login_ip' => request()->ip(),
+        ]);
+
+        Log::info('Successful login recorded', [
+            'user_id' => $this->user_id,
+            'cleared_attempts' => $previousAttempts,
+            'login_ip' => request()->ip()
         ]);
 
         // Log the successful attempt
-        LoginAttempt::logAttempt(
-            $this->email,
-            request()->ip(),
-            request()->userAgent(),
-            true
-        );
+        try {
+            LoginAttempt::logAttempt(
+                $this->email,
+                request()->ip(),
+                request()->userAgent(),
+                true
+            );
+        } catch (\Exception $e) {
+            Log::error('Failed to log successful login attempt', [
+                'user_id' => $this->user_id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -160,8 +240,17 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function lockAccount(int $minutes = 30): void
     {
+        $lockedUntil = now()->addMinutes($minutes);
+        
         $this->update([
-            'locked_until' => now()->addMinutes($minutes),
+            'locked_until' => $lockedUntil,
+        ]);
+
+        Log::warning('Account locked', [
+            'user_id' => $this->user_id,
+            'locked_until' => $lockedUntil,
+            'duration_minutes' => $minutes,
+            'failed_attempts' => $this->failed_login_attempts
         ]);
     }
 
@@ -170,6 +259,8 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function unlockAccount(): void
     {
+        $wasLocked = $this->isLocked();
+        
         $this->update([
             'failed_login_attempts' => 0,
             'locked_until' => null,
