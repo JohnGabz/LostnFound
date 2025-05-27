@@ -13,7 +13,7 @@ class ClaimController extends Controller
     // Helper method to log user actions
     private function logAction(string $action, ?string $details = null): void
     {
-        Log::create([
+        \App\Models\Log::create([
             'user_id' => auth()->id(),
             'action' => $action,
             'details' => $details,
@@ -23,32 +23,27 @@ class ClaimController extends Controller
     public function index()
     {
         $userId = auth()->id();
-        
-        // Fetch claims where the current user is the claimer
+
         $pendingClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'pending')
-            ->where('claimer_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
 
         $approvedClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'approved')
-            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         $rejectedClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'rejected')
-            ->where('claimer_id', $userId)
             ->orderBy('updated_at', 'desc')
             ->get();
 
         return view('claim-items', compact('pendingClaims', 'approvedClaims', 'rejectedClaims'));
     }
-
 
     public function store(Request $request)
     {
@@ -59,12 +54,10 @@ class ClaimController extends Controller
 
         $item = Item::findOrFail($request->item_id);
 
-        // Prevent users from claiming their own items
         if ($item->user_id === auth()->id()) {
             return redirect()->back()->with('error', 'You cannot claim your own item.');
         }
 
-        // Check if user already has a pending or approved claim for this item
         $existingClaim = Claim::where('item_id', $request->item_id)
             ->where('claimer_id', auth()->id())
             ->whereIn('status', ['pending', 'approved'])
@@ -77,14 +70,13 @@ class ClaimController extends Controller
             return redirect()->back()->with('error', $message);
         }
 
-        // Check if item is already claimed
         if ($item->status === 'claimed') {
             return redirect()->back()->with('error', 'This item has already been claimed.');
         }
 
         try {
             $claim = Claim::create([
-                'item_id' => $request->item_id,
+                'item_id' => $item->item_id,
                 'claimer_id' => auth()->id(),
                 'message' => $request->input('message'),
                 'status' => 'pending',
@@ -92,9 +84,9 @@ class ClaimController extends Controller
 
             Log::info('Claim submitted', [
                 'claim_id' => $claim->claim_id,
-                'item_id' => $request->item_id,
+                'item_id' => $item->item_id,
                 'item_type' => $item->type,
-                'claimer_id' => auth()->id()
+                'claimer_id' => auth()->id(),
             ]);
 
             $successMessage = $item->type === 'lost' 
@@ -102,14 +94,13 @@ class ClaimController extends Controller
                 : 'Your ownership claim has been submitted. The finder will review it soon.';
 
             return redirect()->back()->with('success', $successMessage);
-
         } catch (\Exception $e) {
             Log::error('Failed to submit claim', [
                 'error' => $e->getMessage(),
-                'item_id' => $request->item_id,
-                'claimer_id' => auth()->id()
+                'item_id' => $item->item_id,
+                'claimer_id' => auth()->id(),
             ]);
-            
+
             return redirect()->back()->with('error', 'Failed to submit claim. Please try again.');
         }
     }
@@ -124,9 +115,8 @@ class ClaimController extends Controller
             DB::beginTransaction();
 
             $claim = Claim::with('item')->findOrFail($id);
-            
-            // Check if user owns the item or is admin
             $user = auth()->user();
+
             if ($claim->item->user_id !== $user->user_id && $user->role !== 'admin') {
                 return redirect()->back()->with('error', 'Unauthorized action.');
             }
@@ -135,12 +125,9 @@ class ClaimController extends Controller
             $claim->status = $request->status;
             $claim->save();
 
-            // Handle status changes
             if ($request->status === 'approved') {
-                // Mark item as claimed
                 $claim->item->update(['status' => 'claimed']);
-                
-                // Reject all other pending claims for this item
+
                 Claim::where('item_id', $claim->item_id)
                     ->where('claim_id', '!=', $claim->claim_id)
                     ->where('status', 'pending')
@@ -152,26 +139,22 @@ class ClaimController extends Controller
                     'item_title' => $claim->item->title,
                     'item_type' => $claim->item->type
                 ]);
-                
+
                 $message = $claim->item->type === 'lost' 
                     ? 'Finder confirmed! The item has been marked as claimed and reunited with its owner.'
                     : 'Ownership confirmed! The item has been marked as claimed and returned to its owner.';
-                    
             } elseif ($request->status === 'rejected') {
-                // If this was previously approved, we need to unmark the item
                 if ($oldStatus === 'approved') {
-                    // Check if there are other approved claims for this item
                     $otherApprovedClaims = Claim::where('item_id', $claim->item_id)
                         ->where('claim_id', '!=', $claim->claim_id)
                         ->where('status', 'approved')
                         ->exists();
-                    
-                    // If no other approved claims, mark item as available
+
                     if (!$otherApprovedClaims) {
                         $claim->item->update(['status' => 'available']);
                     }
                 }
-                
+
                 $message = $claim->item->type === 'lost' 
                     ? 'Finder report rejected.' 
                     : 'Ownership claim rejected.';
@@ -181,16 +164,15 @@ class ClaimController extends Controller
 
             DB::commit();
             return redirect()->back()->with('success', $message);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             Log::error('Failed to update claim', [
                 'claim_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return redirect()->back()->with('error', 'Failed to update claim status. Please try again.');
         }
     }
