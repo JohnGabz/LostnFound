@@ -437,15 +437,30 @@
                 <h1 class="text-3xl font-bold">LostnFound</h1>
             </div>
             <div class="auth-buttons">
-                <a href="{{ route('login') }}" class="btn btn-outline">
-                    <i class="fas fa-sign-in-alt"></i>
-                    Login
-                </a>
-                <a href="{{ route('register') }}" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i>
-                    Register
-                </a>
+                @auth
+                    <a href="{{ route('dashboard') }}" class="btn btn-outline">
+                        <i class="fas fa-user-circle"></i>
+                        Dashboard
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}" class="btn btn-outline">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Login
+                    </a>
+                    <a href="{{ route('register') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i>
+                        Register
+                    </a>
+                @endauth
             </div>
+
         </nav>
     </header>
 
@@ -472,11 +487,13 @@
                 </div>
 
                 <div class="hero-buttons">
-                    <a href="{{ route('register') }}" class="btn btn-hero">
+                    <a href="{{ auth()->check() ? route('items.report', ['type' => 'lost']) : route('register') }}"
+                        class="btn btn-hero">
                         <i class="fas fa-exclamation-circle"></i>
                         Report Lost Item
                     </a>
-                    <a href="{{ route('register') }}" class="btn btn-hero">
+                    <a href="{{ auth()->check() ? route('items.report', ['type' => 'found']) : route('register') }}"
+                        class="btn btn-hero">
                         <i class="fas fa-hand-holding"></i>
                         Report Found Item
                     </a>
@@ -564,12 +581,13 @@
                                         {{ $item->date_lost_found ? $item->date_lost_found->format('M d, Y') : $item->created_at->format('M d, Y') }}</span>
                                 </div>
                                 <p class="item-description">
-                                    {{ Str::limit($item->description ?? 'No description provided.', 100) }}</p>
+                                    {{ Str::limit($item->description ?? 'No description provided.', 100) }}
+                                </p>
                                 <span class="item-status status-{{ $item->status }}">{{ ucfirst($item->status) }}</span>
                                 @if($item->status !== 'claimed')
                                     <div style="margin-top: 1rem; text-align: center;">
-                                        <a href="{{ route('register') }}" class="btn btn-primary"
-                                            style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                        <a href="{{ auth()->check() ? route('claims.store', ['item' => $item->id]) : route('register') }}"
+                                            class="btn btn-primary">
                                             <i class="fas fa-hand-point-right"></i>
                                             I Found This!
                                         </a>
@@ -608,12 +626,13 @@
                                         {{ $item->date_lost_found ? $item->date_lost_found->format('M d, Y') : $item->created_at->format('M d, Y') }}</span>
                                 </div>
                                 <p class="item-description">
-                                    {{ Str::limit($item->description ?? 'No description provided.', 100) }}</p>
+                                    {{ Str::limit($item->description ?? 'No description provided.', 100) }}
+                                </p>
                                 <span class="item-status status-{{ $item->status }}">{{ ucfirst($item->status) }}</span>
                                 @if($item->status !== 'claimed')
                                     <div style="margin-top: 1rem; text-align: center;">
-                                        <a href="{{ route('register') }}" class="btn btn-primary"
-                                            style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                        <a href="{{ auth()->check() ? route('claims.store', ['item' => $item->id]) : route('register') }}"
+                                            class="btn btn-primary">
                                             <i class="fas fa-hand-point-right"></i>
                                             This is Mine!
                                         </a>

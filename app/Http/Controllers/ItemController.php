@@ -58,7 +58,7 @@ class ItemController extends Controller
         $item->status = 'pending';
 
         // Handle image upload if any
-        // $item->image_path = ...
+        $item->image_path = $this->handleImageUpload($request->file('image'));
 
         $item->save();
 

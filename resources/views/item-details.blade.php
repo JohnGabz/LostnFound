@@ -39,16 +39,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    {{-- Debug info (remove in production) --}}
-                                    @if(config('app.debug'))
-                                        <div class="mt-2 p-2 bg-light small">
-                                            <strong>Debug Info:</strong><br>
-                                            DB Path: {{ $item->image_path }}<br>
-                                            Storage URL: {{ $imageUrl }}<br>
-                                            File exists: {{ Storage::disk('public')->exists($item->image_path) ? 'Yes' : 'No' }}<br>
-                                            Full path: {{ storage_path('app/public/' . $item->image_path) }}
-                                        </div>
-                                    @endif
                                 @else
                                     <div class="bg-light d-flex justify-content-center align-items-center rounded"
                                         style="height: 300px;">
