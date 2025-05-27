@@ -3,10 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\VerificationController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ClaimController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\LogsController;
+use App\Http\Controllers\NotificationController;
 
 // Guest-only routes (Authentication)
 Route::middleware('guest')->group(function () {
@@ -15,13 +19,40 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
     Route::post('/register', [RegisterController::class, 'register']);
+
+    // Password Reset Routes
+    Route::get('/forgot-password', [App\Http\Controllers\Auth\PasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetOtp'])->name('password.send-otp');
+    Route::get('/reset-password/verify', [App\Http\Controllers\Auth\PasswordResetController::class, 'showVerifyOtpForm'])->name('password.verify-otp');
+    Route::post('/reset-password/verify', [App\Http\Controllers\Auth\PasswordResetController::class, 'verifyOtp']);
+    Route::get('/reset-password/{token}', [App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [App\Http\Controllers\Auth\PasswordResetController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password/resend-otp', [App\Http\Controllers\Auth\PasswordResetController::class, 'resendOtp'])->name('password.resend-otp');
 });
+
+// Email Verification Routes (must be authenticated but not necessarily verified)
+Route::middleware('auth')->group(function () {
+    Route::get('/email/verify', [VerificationController::class, 'show'])->name('verification.notice');
+    Route::post('/email/verification-notification', [VerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')->name('verification.send');
+});
+
+// Two-Factor Authentication Routes
+Route::middleware('guest')->group(function () {
+    Route::get('/two-factor/challenge', [TwoFactorController::class, 'challenge'])->name('two-factor.challenge');
+    Route::post('/two-factor/challenge', [TwoFactorController::class, 'verify'])->name('two-factor.verify');
+    Route::post('/two-factor/send-otp', [TwoFactorController::class, 'sendOtp'])->name('two-factor.send-otp');
+});
+
+// Email verification callback (signed route)
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])
+    ->middleware(['auth', 'signed'])->name('verification.verify');
 
 // Logout route (Authenticated users only)
 Route::post('/logout', [LoginController::class, 'logout'])->middleware('auth')->name('logout');
 
-// Authenticated routes
-Route::middleware('auth')->group(function () {
+// Authenticated and verified routes
+Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
@@ -51,9 +82,25 @@ Route::middleware('auth')->group(function () {
     // Profile
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/claimer/{name}', [ProfileController::class, 'claimer'])->name('profile.claimer');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Two-Factor Authentication Setup
+    Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');
+    Route::post('/two-factor', [TwoFactorController::class, 'enable'])->name('two-factor.enable');
+    Route::delete('/two-factor', [TwoFactorController::class, 'disable'])->name('two-factor.disable');
+    
+    // Test OTP (Development only)
+    Route::post('/two-factor/test-otp', [TwoFactorController::class, 'testOtp'])->name('two-factor.test-otp');
 
     // Matching found and lost items
     Route::get('/items/{item}/match', [ItemController::class, 'match'])->name('items.match');
+
+    // Notifications
+    Route::get('/notifications/read/{id}', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
+
+    // Logs routes
+    Route::get('/logs', [LogsController::class, 'index'])->name('logs.index');
 });
 
 // Redirect root to login

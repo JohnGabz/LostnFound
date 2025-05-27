@@ -36,6 +36,13 @@
         </div>
         @endif
 
+        <!-- Display status message -->
+        @if (session('status'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+          {{ session('status') }}
+        </div>
+        @endif
+
         <form method="POST" action="{{ route('login') }}" class="space-y-6">
           @csrf
           <!-- Email Input -->
@@ -70,10 +77,20 @@
           </div>
         </form>
 
-        <!-- Sign up link -->
-        <div class="text-sm text-center text-gray-500">
-          Don't have an account?
-          <a href="{{ route('register') }}" class="text-indigo-600 hover:underline ml-1">Sign up</a>
+        <!-- Forgot Password & Sign up links -->
+        <div class="space-y-3">
+          <!-- Forgot Password Link -->
+          <div class="text-center">
+            <a href="{{ route('password.request') }}" class="text-sm text-indigo-600 hover:underline">
+              Forgot your password?
+            </a>
+          </div>
+
+          <!-- Sign up link -->
+          <div class="text-sm text-center text-gray-500">
+            Don't have an account?
+            <a href="{{ route('register') }}" class="text-indigo-600 hover:underline ml-1">Sign up</a>
+          </div>
         </div>
       </div>
     </div>
