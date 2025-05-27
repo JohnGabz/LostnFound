@@ -89,8 +89,8 @@ class LoginController extends Controller
         }
 
         $user = User::where('email', $credentials['email'])->first();
-
-        LaravelLog::info('User lookup', [
+        
+        Log::info('User lookup', [
             'email' => $credentials['email'],
             'user_found' => $user ? 'yes' : 'no',
             'user_id' => $user?->user_id
@@ -104,7 +104,7 @@ class LoginController extends Controller
                 'locked_until' => $user->locked_until,
                 'time_remaining' => $timeRemaining
             ]);
-
+            
             throw ValidationException::withMessages([
                 'email' => ["Account is temporarily locked due to multiple failed login attempts. Please try again in {$timeRemaining} minutes."],
             ]);
@@ -164,7 +164,7 @@ class LoginController extends Controller
             $user->recordSuccessfulLogin();
             LaravelLog::info('Successful login recorded', ['user_id' => $user->user_id]);
         } catch (\Exception $e) {
-            LaravelLog::error('Failed to record successful login', [
+            Log::error('Failed to record successful login', [
                 'user_id' => $user->user_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -241,7 +241,7 @@ class LoginController extends Controller
                 'user_id' => $user->user_id,
                 'new_attempts_count' => $user->fresh()->failed_login_attempts
             ]);
-
+            
             // Refresh user data
             $user = $user->fresh();
 
@@ -329,14 +329,14 @@ class LoginController extends Controller
     public function logout(Request $request): RedirectResponse
     {
         $userId = Auth::id();
-
+        
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        LaravelLog::info('User logged out', ['user_id' => $userId]);
-
+        
+        Log::info('User logged out', ['user_id' => $userId]);
+        
         return redirect('/')->with('success', 'You have been logged out successfully.');
     }
 }

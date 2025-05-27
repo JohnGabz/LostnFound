@@ -131,6 +131,12 @@ class User extends Authenticatable implements MustVerifyEmail
             ]);
             throw $e;
         }
+        $otp = UserOtp::createForUser($this, 'login', 5); // 5 minutes expiration
+
+        // Send email notification
+        $this->notify(new \App\Notifications\LoginOtpNotification($otp->otp_code));
+
+        return $otp;
     }
 
     /**

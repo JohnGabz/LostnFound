@@ -17,7 +17,6 @@ class ClaimController extends Controller
     public function index()
     {
         $userId = auth()->id();
-
         $pendingClaims = Claim::with(['item.user'])
             ->where('claimer_id', $userId)
             ->where('status', 'pending')
