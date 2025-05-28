@@ -25,7 +25,7 @@ class RegisterController extends Controller
 
     public function showRegistrationForm(): View
     {
-        return view('Authentication.register');
+        return view('Authentication.register'); // Updated to match your blade file name
     }
 
     public function register(Request $request): RedirectResponse
@@ -72,12 +72,28 @@ class RegisterController extends Controller
                 ]);
             }
 
+            // Check if contact number already exists
+            if (User::where('contact_number', $validated['contact_number'])->exists()) {
+                Log::warning('Registration attempt with existing contact number', [
+                    'contact_number' => $validated['contact_number'],
+                    'ip' => $request->ip()
+                ]);
+                
+                RateLimiter::hit($throttleKey, self::REGISTRATION_LOCKOUT_MINUTES * 60);
+                
+                throw ValidationException::withMessages([
+                    'contact_number' => ['This contact number is already registered.'],
+                ]);
+            }
+
             // Create the user
             $user = $this->createUser($validated);
             
             Log::info('User created successfully', [
                 'user_id' => $user->user_id,
-                'email' => $user->email
+                'email' => $user->email,
+                'has_contact' => !empty($user->contact_number),
+                'show_contact_publicly' => $user->show_contact_publicly
             ]);
 
             // Fire the Registered event to send verification email
@@ -112,6 +128,7 @@ class RegisterController extends Controller
         } catch (\Exception $e) {
             Log::error('Registration failed', [
                 'email' => $validated['email'],
+                'contact_number' => $validated['contact_number'] ?? 'N/A',
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'ip' => $request->ip()
@@ -175,6 +192,44 @@ class RegisterController extends Controller
                     }
                 }
             ],
+            // ADDED: Contact number validation
+            'contact_number' => [
+                'required', 
+                'string', 
+                'regex:/^09\d{9}$/', // Philippine mobile number format (11 digits starting with 09)
+                'unique:users,contact_number',
+                function ($attribute, $value, $fail) {
+                    // Additional validation for Philippine numbers
+                    $cleanNumber = preg_replace('/[^0-9]/', '', $value);
+                    
+                    // Must be exactly 11 digits
+                    if (strlen($cleanNumber) !== 11) {
+                        $fail('Contact number must be exactly 11 digits.');
+                        return;
+                    }
+                    
+                    // Must start with 09 (Philippine mobile format)
+                    if (!preg_match('/^09/', $cleanNumber)) {
+                        $fail('Contact number must start with 09 (Philippine mobile format).');
+                        return;
+                    }
+                    
+                    // Check for valid network prefixes (Philippine carriers)
+                    $validPrefixes = [
+                        '0905', '0906', '0915', '0916', '0917', '0926', '0927', '0935', '0936', '0937', '0938', '0939', // Globe
+                        '0908', '0918', '0919', '0920', '0921', '0928', '0929', '0939', // Smart
+                        '0907', '0909', '0910', '0912', '0930', '0946', '0947', '0948', '0949', '0950', // Sun/TNT
+                        '0813', '0817', '0904', '0994' // Others
+                    ];
+                    
+                    $prefix = substr($cleanNumber, 0, 4);
+                    if (!in_array($prefix, $validPrefixes)) {
+                        $fail('Please enter a valid Philippine mobile number.');
+                    }
+                }
+            ],
+            // ADDED: Contact visibility preference
+            'show_contact_publicly' => ['boolean'],
             'password' => [
                 'required',
                 'string',
@@ -215,6 +270,11 @@ class RegisterController extends Controller
             'email.max' => 'Email address cannot exceed 100 characters.',
             'email.regex' => 'Please enter a valid email format.',
             
+            // ADDED: Contact number error messages
+            'contact_number.required' => 'Contact number is required.',
+            'contact_number.regex' => 'Please enter a valid Philippine mobile number (11 digits starting with 09).',
+            'contact_number.unique' => 'This contact number is already registered.',
+            
             'password.required' => 'Password is required.',
             'password.confirmed' => 'Password confirmation does not match.',
             
@@ -229,9 +289,14 @@ class RegisterController extends Controller
         $name = preg_replace('/\s+/', ' ', $name); // Replace multiple spaces with single space
         $name = ucwords(strtolower($name)); // Proper case formatting
 
+        // Format contact number (ensure it's clean)
+        $contactNumber = preg_replace('/[^0-9]/', '', $validated['contact_number']);
+
         return User::create([
             'name' => $name,
             'email' => strtolower(trim($validated['email'])),
+            'contact_number' => $contactNumber, // ADDED
+            'show_contact_publicly' => isset($validated['show_contact_publicly']) ? true : false, // ADDED
             'password' => Hash::make($validated['password']),
             'role' => 'user', // Default role
             'failed_login_attempts' => 0,

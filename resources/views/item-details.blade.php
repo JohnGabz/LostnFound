@@ -62,6 +62,39 @@
                                         <small class="text-muted">Posted on:
                                             {{ $item->created_at->format('M d, Y g:i A') }}</small>
                                     </p>
+                                    
+                                    {{-- Contact Information --}}
+                                    @if($item->user && $item->user->shouldShowContact())
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <p class="card-text mb-1">
+                                                <small class="text-muted"><strong>Contact:</strong></small>
+                                            </p>
+                                            <p class="card-text">
+                                                <a href="tel:{{ $item->user->public_contact }}" class="text-decoration-none">
+                                                    <i class="fas fa-phone text-primary mr-1"></i>
+                                                    {{ $item->user->public_contact }}
+                                                </a>
+                                            </p>
+                                            <p class="card-text">
+                                                <a href="sms:{{ $item->user->public_contact }}" class="btn btn-sm btn-outline-primary mr-2">
+                                                    <i class="fas fa-sms"></i> Send SMS
+                                                </a>
+                                                <a href="https://wa.me/{{ str_replace(['+', ' ', '-', '(', ')'], '', $item->user->public_contact) }}" 
+                                                   target="_blank" class="btn btn-sm btn-outline-success">
+                                                    <i class="fab fa-whatsapp"></i> WhatsApp
+                                                </a>
+                                            </p>
+                                        </div>
+                                    @elseif($item->user && !$item->user->shouldShowContact() && $item->user_id != auth()->id())
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle text-info mr-1"></i>
+                                                    Contact via claims/messages system
+                                                </small>
+                                            </p>
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="col-md-7">
@@ -172,6 +205,7 @@
                                             <thead>
                                                 <tr>
                                                     <th>{{ $item->type == 'lost' ? 'Finder' : 'Claimer' }}</th>
+                                                    <th>Contact</th>
                                                     <th>Date</th>
                                                     <th>Message</th>
                                                     <th>Status</th>
@@ -182,6 +216,22 @@
                                                 @foreach($item->claims as $claim)
                                                     <tr>
                                                         <td>{{ optional($claim->claimer)->name ?? 'N/A' }}</td>
+                                                        <td>
+                                                            @if($claim->claimer && $claim->claimer->shouldShowContact())
+                                                                <a href="tel:{{ $claim->claimer->public_contact }}" class="text-decoration-none">
+                                                                    <i class="fas fa-phone text-primary mr-1"></i>
+                                                                    {{ $claim->claimer->public_contact }}
+                                                                </a>
+                                                                <br>
+                                                                <div class="mt-1">
+                                                                    <a href="sms:{{ $claim->claimer->public_contact }}" class="btn btn-xs btn-outline-primary mr-1">SMS</a>
+                                                                    <a href="https://wa.me/{{ str_replace(['+', ' ', '-', '(', ')'], '', $claim->claimer->public_contact) }}" 
+                                                                       target="_blank" class="btn btn-xs btn-outline-success">WhatsApp</a>
+                                                                </div>
+                                                            @else
+                                                                <small class="text-muted">Contact via system</small>
+                                                            @endif
+                                                        </td>
                                                         <td>{{ $claim->created_at->format('M d, Y') }}</td>
                                                         <td>{{ Str::limit($claim->message, 50) }}</td>
                                                         <td>

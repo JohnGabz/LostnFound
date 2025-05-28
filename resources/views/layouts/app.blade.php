@@ -114,17 +114,67 @@
             color: white;
         }
 
+        /* FIXED: Notification badge styling for Bootstrap 4 */
+        .notification-icon {
+            position: relative;
+            display: inline-block;
+        }
+
         .notification-badge {
-            max-width: 40px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.75rem;
-            padding: 0.25em 0.5em;
             position: absolute;
-            top: -5px;
-            right: -10px;
-            z-index: 1000;
+            top: -8px;
+            right: -8px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            min-width: 18px;
+            line-height: 1;
+        }
+
+        .notification-badge.large-count {
+            border-radius: 10px;
+            min-width: 20px;
+            padding: 0 4px;
+        }
+
+        /* Notification dropdown styling */
+        .notification-dropdown {
+            min-width: 320px;
+            max-width: 400px;
+        }
+
+        .notification-item {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f8f9fa;
+            transition: background-color 0.2s;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .notification-item.unread {
+            background-color: #f0f8ff;
+            font-weight: 500;
+        }
+
+        .notification-item .notification-content {
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+
+        .notification-item .notification-time {
+            font-size: 0.75rem;
+            color: #6c757d;
         }
     </style>
 
@@ -250,41 +300,50 @@
                                 @else
                                     @auth
                                         <li class="nav-item dropdown">
-                                            <a class="nav-link position-relative" href="#" id="notificationsDropdown"
+                                            <a class="nav-link notification-icon" href="#" id="notificationsDropdown"
                                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                                 <i class="fas fa-bell fa-lg text-secondary"></i>
-
+                                                
                                                 @if($unreadCount > 0)
-                                                    <span
-                                                        class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                                                        <span class="visually-hidden">New alerts</span>
+                                                    <span class="notification-badge {{ $unreadCount > 9 ? 'large-count' : '' }}">
+                                                        {{ $unreadCount > 99 ? '99+' : $unreadCount }}
                                                     </span>
                                                 @endif
                                             </a>
 
-                                            <div class="dropdown-menu dropdown-menu-right"
+                                            <div class="dropdown-menu dropdown-menu-right notification-dropdown"
                                                 aria-labelledby="notificationsDropdown">
-                                                <h6 class="dropdown-header">Notifications</h6>
+                                                <div class="dropdown-header d-flex justify-content-between align-items-center">
+                                                    <span class="font-weight-bold">Notifications</span>
+                                                    @if($unreadCount > 0)
+                                                        <span class="badge badge-primary">{{ $unreadCount }} new</span>
+                                                    @endif
+                                                </div>
 
                                                 @forelse($notifications as $notification)
                                                     <a href="{{ route('notifications.read', $notification->notification_id) }}"
-                                                        class="dropdown-item d-flex align-items-start {{ !$notification->is_read ? 'fw-bold' : '' }}">
-                                                        <div>
-                                                            <div>{{ \Illuminate\Support\Str::limit($notification->message, 50) }}
-                                                            </div>
-                                                            <small
-                                                                class="text-muted d-block">{{ $notification->created_at->diffForHumans() }}</small>
+                                                        class="dropdown-item notification-item {{ !$notification->is_read ? 'unread' : '' }}">
+                                                        <div class="notification-content">
+                                                            {{ \Illuminate\Support\Str::limit($notification->message, 60) }}
+                                                        </div>
+                                                        <div class="notification-time">
+                                                            {{ $notification->created_at->diffForHumans() }}
                                                         </div>
                                                     </a>
                                                 @empty
-                                                    <span class="dropdown-item text-muted small">No notifications</span>
+                                                    <div class="dropdown-item text-center text-muted py-3">
+                                                        <i class="fas fa-bell-slash mb-2"></i>
+                                                        <div>No notifications</div>
+                                                    </div>
                                                 @endforelse
 
-                                                <div class="dropdown-divider"></div>
-                                                <a class="dropdown-item text-center small text-primary"
-                                                    href="{{ route('notifications.markAllRead') }}">
-                                                    <i class="fas fa-check-circle me-1"></i> Mark All as Read
-                                                </a>
+                                                @if($notifications->count() > 0)
+                                                    <div class="dropdown-divider"></div>
+                                                    <a class="dropdown-item text-center text-primary py-2"
+                                                        href="{{ route('notifications.markAllRead') }}">
+                                                        <i class="fas fa-check-circle mr-1"></i> Mark All as Read
+                                                    </a>
+                                                @endif
                                             </div>
                                         </li>
                                     @endauth
