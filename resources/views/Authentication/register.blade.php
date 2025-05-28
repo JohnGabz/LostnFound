@@ -116,6 +116,62 @@
             @enderror
           </div>
 
+          <!-- Contact Number -->
+          <div>
+            <label for="contact_number" class="block text-gray-700 text-sm mb-1 font-medium">
+              Contact Number <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <input 
+                type="tel" 
+                id="contact_number"
+                name="contact_number" 
+                placeholder="09XX XXX XXXX" 
+                value="{{ old('contact_number') }}" 
+                required 
+                autocomplete="tel"
+                aria-describedby="contact-error contact-help"
+                maxlength="11"
+                class="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-100 text-gray-900 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-200 @error('contact_number') field-invalid @enderror" 
+              />
+              <div class="absolute left-3 top-3.5 text-gray-400">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <div id="contactCheckmark" class="absolute right-3 top-3.5 text-green-500 hidden">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            @error('contact_number')
+            <p class="mt-1 text-sm text-red-600" id="contact-error">{{ $message }}</p>
+            @else
+            <p class="mt-1 text-xs text-gray-500" id="contact-help">Philippine mobile number (11 digits starting with 09)</p>
+            @enderror
+          </div>
+
+          <!-- Show Contact Publicly -->
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input 
+                id="show_contact_publicly" 
+                name="show_contact_publicly" 
+                type="checkbox" 
+                value="1"
+                {{ old('show_contact_publicly') ? 'checked' : '' }}
+                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              >
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="show_contact_publicly" class="text-gray-700">
+                Allow other users to see my contact number when I post items
+              </label>
+              <p class="text-xs text-gray-500 mt-1">This helps other users contact you directly about lost/found items</p>
+            </div>
+          </div>
+
           <!-- Email -->
           <div>
             <label for="email" class="block text-gray-700 text-sm mb-1 font-medium">
@@ -314,6 +370,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Form elements
       const nameInput = document.getElementById('name');
+      const contactInput = document.getElementById('contact_number');
       const emailInput = document.getElementById('email');
       const passwordInput = document.getElementById('password');
       const confirmPasswordInput = document.getElementById('password_confirmation');
@@ -328,6 +385,7 @@
 
       // Real-time validation
       nameInput.addEventListener('input', validateName);
+      contactInput.addEventListener('input', validateContact);
       emailInput.addEventListener('blur', validateEmail);
       passwordInput.addEventListener('input', validatePassword);
       confirmPasswordInput.addEventListener('input', validatePasswordConfirmation);
@@ -380,6 +438,29 @@
           nameInput.classList.remove('field-valid');
           nameInput.classList.add('field-invalid');
           nameCheckmark.classList.add('hidden');
+          return false;
+        }
+      }
+
+            function validateContact() {
+        const contact = contactInput.value.trim();
+        const contactCheckmark = document.getElementById('contactCheckmark');
+        
+        // Remove non-digits for validation
+        const digits = contact.replace(/\D/g, '');
+        
+        // Check if it's a valid Philippine mobile number (11 digits starting with 09)
+        const isValid = /^09\d{9}$/.test(digits);
+        
+        if (isValid) {
+          contactInput.classList.remove('field-invalid');
+          contactInput.classList.add('field-valid');
+          contactCheckmark.classList.remove('hidden');
+          return true;
+        } else {
+          contactInput.classList.remove('field-valid');
+          contactInput.classList.add('field-invalid');
+          contactCheckmark.classList.add('hidden');
           return false;
         }
       }
@@ -503,6 +584,7 @@
 
       function validateForm() {
         const isNameValid = validateName();
+        const isContactValid = validateContact();
         const isEmailValid = validateEmail();
         const isPasswordValid = validatePassword();
         const isConfirmValid = validatePasswordConfirmation();

@@ -87,6 +87,11 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
     // User Profile Routes
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile/password', [ProfileController::class, 'showPasswordForm'])->name('profile.password');
+    Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+    Route::post('/profile/toggle-contact', [ProfileController::class, 'toggleContactVisibility'])->name('profile.toggle-contact');
 
     // Two-Factor Authentication
     Route::get('/two-factor', [TwoFactorController::class, 'show'])->name('two-factor.show');

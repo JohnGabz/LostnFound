@@ -19,6 +19,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'contact_number',
+        'show_contact_publicly',
         'password',
         'role',
         'two_factor_enabled',
@@ -40,12 +42,58 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
+            'show_contact_publicly' => 'boolean',
             'locked_until' => 'datetime',
             'last_failed_login' => 'datetime',
             'last_login_at' => 'datetime',
         ];
     }
 
+    /**
+     * Get formatted contact number for display
+     */
+    public function getFormattedContactAttribute(): ?string
+    {
+        if (!$this->contact_number) {
+            return null;
+        }
+
+        // Format Philippine mobile numbers
+        $number = preg_replace('/[^0-9]/', '', $this->contact_number);
+        
+        if (strlen($number) === 11 && substr($number, 0, 2) === '09') {
+            return '+63' . substr($number, 1);
+        }
+        
+        if (strlen($number) === 10 && substr($number, 0, 1) === '9') {
+            return '+63' . $number;
+        }
+        
+        return $this->contact_number;
+    }
+
+    /**
+     * Check if contact should be displayed publicly
+     */
+    public function shouldShowContact(): bool
+    {
+        return $this->show_contact_publicly && !empty($this->contact_number);
+    }
+
+    /**
+     * Get contact for display (only if user allows public display)
+     */
+    public function getPublicContactAttribute(): ?string
+    {
+        if (!$this->shouldShowContact()) {
+            return null;
+        }
+        
+        return $this->getFormattedContactAttribute();
+    }
+
+    // ... (keep all your existing methods from the original User model)
+    
     /**
      * Get the user's OTP codes.
      */
@@ -368,6 +416,7 @@ class User extends Authenticatable implements MustVerifyEmail
             // Ensure default values
             $user->failed_login_attempts = $user->failed_login_attempts ?? 0;
             $user->two_factor_enabled = $user->two_factor_enabled ?? false;
+            $user->show_contact_publicly = $user->show_contact_publicly ?? false;
             $user->role = $user->role ?? 'user';
         });
 
