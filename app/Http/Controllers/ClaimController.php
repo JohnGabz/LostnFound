@@ -63,8 +63,8 @@ class ClaimController extends Controller
             ->first();
 
         if ($existingClaim) {
-            $message = $item->type === 'lost' 
-                ? 'You have already reported finding this item.' 
+            $message = $item->type === 'lost'
+                ? 'You have already reported finding this item.'
                 : 'You have already claimed this item.';
             return redirect()->back()->with('error', $message);
         }
@@ -89,10 +89,30 @@ class ClaimController extends Controller
                 'claimer_id' => auth()->id(),
             ]);
 
-            $this->logAction('Claim submitted', "Claim ID: {$claim->claim_id}");
+            $this->logAction('Claim submitted', "Claim ID: {$claim->claim_id} for Item: {$item->title}");
 
-            $successMessage = $item->type === 'lost' 
-                ? 'Thank you for reporting that you found this item! The owner will be notified.' 
+            // Wrap notification in try/catch
+            try {
+                $this->createNotification(
+                    $item->user_id,
+                    $item->type === 'lost'
+                    ? 'New Found Report'
+                    : 'New Ownership Claim',
+                    $item->type === 'lost'
+                    ? "Someone reported finding your lost item: {$item->title}"
+                    : "Someone claimed ownership of your found item: {$item->title}",
+                    'claim',
+                    route('item.show', $item->item_id)
+                );
+            } catch (\Exception $e) {
+                LaravelLog::error('Notification creation failed', [
+                    'error' => $e->getMessage(),
+                    'item_id' => $item->item_id,
+                ]);
+            }
+
+            $successMessage = $item->type === 'lost'
+                ? 'Thank you for reporting that you found this item! The owner will be notified.'
                 : 'Your ownership claim has been submitted. The finder will review it soon.';
 
             return redirect()->back()->with('success', $successMessage);
@@ -103,8 +123,10 @@ class ClaimController extends Controller
                 'claimer_id' => auth()->id(),
             ]);
 
+            $this->logAction('Failed to submit claim', "Item ID: {$item->item_id}, Error: {$e->getMessage()}");
             return redirect()->back()->with('error', 'Failed to submit claim. Please try again.');
         }
+
     }
 
     /**
@@ -150,7 +172,7 @@ class ClaimController extends Controller
 
                 $this->logAction('Claim approved', "Claim ID: {$claim->claim_id}");
 
-                $message = $claim->item->type === 'lost' 
+                $message = $claim->item->type === 'lost'
                     ? 'Finder confirmed! The item has been marked as claimed and reunited with its owner.'
                     : 'Ownership confirmed! The item has been marked as claimed and returned to its owner.';
             } elseif ($request->status === 'rejected') {
@@ -168,8 +190,8 @@ class ClaimController extends Controller
 
                 $this->logAction('Claim rejected', "Claim ID: {$claim->claim_id}");
 
-                $message = $claim->item->type === 'lost' 
-                    ? 'Finder report rejected.' 
+                $message = $claim->item->type === 'lost'
+                    ? 'Finder report rejected.'
                     : 'Ownership claim rejected.';
             } else {
                 $message = 'Claim status updated successfully.';

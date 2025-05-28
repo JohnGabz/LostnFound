@@ -55,11 +55,6 @@
                                 @endif
                             </span>
                         </div>
-                        <div>
-                            <a href="{{ route('lost.index') }}" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-search"></i> Browse Lost Items
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Items Grid -->

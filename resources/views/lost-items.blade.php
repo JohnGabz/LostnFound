@@ -55,11 +55,6 @@
                                 @endif
                             </span>
                         </div>
-                        <div>
-                            <a href="{{ route('found.index') }}" class="btn btn-sm btn-outline-success">
-                                <i class="fas fa-box"></i> Browse Found Items
-                            </a>
-                        </div>
                     </div>
 
                     <!-- Items Grid -->

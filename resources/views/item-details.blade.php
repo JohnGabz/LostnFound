@@ -234,8 +234,8 @@
     </div>
 
     {{-- Delete Modal --}}
-    <div class="modal fade" id="deleteItemModal" tabindex="-1" role="dialog"
-        aria-labelledby="deleteItemModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteItemModal" tabindex="-1" role="dialog" aria-labelledby="deleteItemModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -258,21 +258,115 @@
             </div>
         </div>
     </div>
+    
+    <<!-- Found This Item Modal -->
+        <div class="modal fade" id="foundThisItemModal" tabindex="-1" role="dialog"
+            aria-labelledby="foundThisItemModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form action="{{ route('claims.store') }}" method="POST" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="item_id" value="{{ $item->item_id }}">
+                        <input type="hidden" name="claim_type" value="found">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="foundThisItemModalLabel">Found This Item</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="message-found">Details</label>
+                                <textarea name="message" id="message-found" rows="4" class="form-control"
+                                    required></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="image-found">Upload Image (optional)</label>
+                                <input type="file" name="image" id="image-found"
+                                    class="form-control-file @error('image') is-invalid @enderror" accept="image/*">
+                                @error('image')
+                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                @enderror
+                                <small class="form-text text-muted">Upload proof such as photos, screenshots, etc. Max
+                                    2MB.</small>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Claim Item Modal -->
+        <div class="modal fade" id="claimItemModal" tabindex="-1" role="dialog" aria-labelledby="claimItemModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('claims.store') }}" onsubmit="this.querySelector('button[type=submit]').disabled = true;">
+                        @csrf
+                        <input type="hidden" name="item_id" value="{{ $item->item_id }}">
+                        <input type="hidden" name="claim_type" value="claim"> {{-- Changed to 'claim' here --}}
+
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="claimItemModalLabel">Claim This Item</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="message-claim">Details</label>
+                                <textarea name="message" id="message-claim" rows="4" class="form-control"
+                                    required></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="image-claim">Upload Image (optional)</label>
+                                <input type="file" name="image" id="image-claim"
+                                    class="form-control-file @error('image') is-invalid @enderror" accept="image/*">
+                                @error('image')
+                                    <span class="invalid-feedback d-block">{{ $message }}</span>
+                                @enderror
+                                <small class="form-text text-muted">Upload proof such as photos, screenshots, etc. Max
+                                    2MB.</small>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i> Submit
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 @endsection
 
-@section('scripts')
-    <script>
-        // Debug image loading
-        document.addEventListener('DOMContentLoaded', function () {
-            const images = document.querySelectorAll('img[src*="storage"]');
-            images.forEach(img => {
-                img.addEventListener('error', function () {
-                    console.log('Failed to load image:', this.src);
-                });
-                img.addEventListener('load', function () {
-                    console.log('Successfully loaded image:', this.src);
+    @section('scripts')
+        <script>
+            // Debug image loading
+            document.addEventListener('DOMContentLoaded', function () {
+                const images = document.querySelectorAll('img[src*="storage"]');
+                images.forEach(img => {
+                    img.addEventListener('error', function () {
+                        console.log('Failed to load image:', this.src);
+                    });
+                    img.addEventListener('load', function () {
+                        console.log('Successfully loaded image:', this.src);
+                    });
                 });
             });
-        });
-    </script>
-@endsection
+        </script>
+    @endsection
