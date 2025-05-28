@@ -193,14 +193,14 @@
             <p class="mt-1 text-sm text-red-600" id="password-error">{{ $message }}</p>
             @else
             <div class="mt-1 text-xs text-gray-500" id="password-help">
-              <p>Password must contain:</p>
-              <ul class="list-disc list-inside space-y-1 mt-1">
-                <li id="length-check" class="text-gray-400">At least 8 characters</li>
-                <li id="uppercase-check" class="text-gray-400">One uppercase letter</li>
-                <li id="lowercase-check" class="text-gray-400">One lowercase letter</li>
-                <li id="number-check" class="text-gray-400">One number</li>
-                <li id="symbol-check" class="text-gray-400">One special character</li>
-              </ul>
+              <p class="mb-1">Password must include:</p>
+              <div class="flex flex-wrap gap-2 text-gray-400 text-xs">
+                <span id="length-check" class="bg-gray-100 px-2 py-1 rounded">8+ chars</span>
+                <span id="uppercase-check" class="bg-gray-100 px-2 py-1 rounded">Uppercase</span>
+                <span id="lowercase-check" class="bg-gray-100 px-2 py-1 rounded">Lowercase</span>
+                <span id="number-check" class="bg-gray-100 px-2 py-1 rounded">Number</span>
+                <span id="symbol-check" class="bg-gray-100 px-2 py-1 rounded">Symbol</span>
+              </div>
             </div>
             @enderror
           </div>

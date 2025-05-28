@@ -13,25 +13,27 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Get counts for different item types and statuses
-        $lostCount = Item::where('type', 'lost')->where('status', 'available')->count();
-        $foundCount = Item::where('type', 'found')->where('status', 'available')->count();
+        // Item statistics
+        $lostCount = Item::where('type', 'lost')->where('status', 'pending')->count();
+        $foundCount = Item::where('type', 'found')->where('status', 'pending')->count();
         $claimedCount = Item::where('status', 'claimed')->count();
 
-        // Total active posts (excluding claimed items from the main count)
         $totalActivePosts = $lostCount + $foundCount;
         $totalPosts = $totalActivePosts + $claimedCount;
 
-        // Calculate percentages based on total posts (including claimed)
         $lostPercentage = $totalPosts > 0 ? round(($lostCount / $totalPosts) * 100) : 0;
         $foundPercentage = $totalPosts > 0 ? round(($foundCount / $totalPosts) * 100) : 0;
         $claimedPercentage = $totalPosts > 0 ? round(($claimedCount / $totalPosts) * 100) : 0;
 
-        // Get additional dashboard data
+        // Insights and Trends
         $insights = $this->getInsights();
         $weeklyTrend = $this->getWeeklyTrend();
         $topCategories = $this->getTopCategories();
         $recentActivity = $this->getRecentActivity();
+
+        // User statistics
+        $totalUsers = User::count();
+        $recentUsers = User::latest()->take(5)->get();
 
         return view('dashboard', compact(
             'lostCount',
@@ -45,10 +47,11 @@ class DashboardController extends Controller
             'insights',
             'weeklyTrend',
             'topCategories',
-            'recentActivity'
+            'recentActivity',
+            'totalUsers',
+            'recentUsers'
         ));
     }
-
     private function getInsights()
     {
         $today = Carbon::today();

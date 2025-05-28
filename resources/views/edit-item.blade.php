@@ -14,6 +14,17 @@
                     </div>
 
                     <div class="card-body">
+                        <!-- Add error display -->
+                        @if ($errors->any())
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
                         <form method="POST" action="{{ route('items.update', $item) }}" enctype="multipart/form-data">
                             @csrf
                             @method('PATCH')
@@ -63,9 +74,7 @@
                                     <label for="date_lost">Date Lost</label>
                                     <input type="date" name="date_lost" id="date_lost"
                                         class="form-control @error('date_lost') is-invalid @enderror"
-                                        value="{{ old('date_lost', optional($item->date_lost)->format('Y-m-d')) }}">
-                                    @error('date_lost')
-                                    @enderror
+                                        value="{{ old('date_lost', $item->date_lost ? $item->date_lost->format('Y-m-d') : '') }}">
                                 </div>
                             @endif
 
@@ -73,7 +82,7 @@
                                 <label for="image">Image</label>
                                 <div class="custom-file">
                                     <input type="file" class="custom-file-input @error('image') is-invalid @enderror"
-                                        id="image" name="image">
+                                        id="image" name="image" accept="image/*">
                                     <label class="custom-file-label" for="image">Choose image...</label>
                                 </div>
                                 @error('image')
