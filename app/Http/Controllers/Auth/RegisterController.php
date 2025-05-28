@@ -25,7 +25,7 @@ class RegisterController extends Controller
 
     public function showRegistrationForm(): View
     {
-        return view('register'); // Updated to match your blade file name
+        return view('Authentication.register'); // Updated to match your blade file name
     }
 
     public function register(Request $request): RedirectResponse

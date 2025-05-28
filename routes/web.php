@@ -67,6 +67,7 @@ Route::middleware(['auth', 'verified', 'two-factor'])->group(function () {
 
     // Items CRUD - FIXED: Specific routes before generic ones
     Route::post('/items', [ItemController::class, 'store'])->name('items.store');
+    Route::get('/item/{item}', [ItemController::class, 'show'])->name('item.show');
     Route::get('/items/{item}/edit', [ItemController::class, 'edit'])->name('items.edit');
     Route::patch('/items/{item}', [ItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{item}', [ItemController::class, 'destroy'])->name('items.destroy');

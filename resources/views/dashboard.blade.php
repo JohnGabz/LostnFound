@@ -144,7 +144,7 @@
                     </div>
                     <div class="card-body">
                         <div class="chart-area">
-                            <canvas id="weeklyTrendChart" style="height: 300px;"></canvas>
+                            <canvas id="weeklyTrendChart" style="height: 435px;"></canvas>
                         </div>
                     </div>
                 </div>
